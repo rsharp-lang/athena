@@ -3,7 +3,9 @@
 namespace app {
 
     export function run() {
+        Router.AddAppHandler(new webapp.chatbox());
 
+        Router.RunApp();
     }
 }
 

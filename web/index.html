@@ -1,53 +1,66 @@
-﻿<link href="./styles/ChatUI.min.css" rel="stylesheet" />
+﻿<html>
 
-<div id="chatbox" class="cu chat" data-style="telegram">
-    <div class="message text">
-        <!-- 大頭貼 -->
-        <div class="avatar">
-            <img src="./images/avatar/athena_default.jpg" />
+<head>
+    <meta name="app" content="chatbox" />
+
+    <link href="./styles/ChatUI.min.css" rel="stylesheet" />
+
+    <script type="text/javascript" src="./javascript/linq.min.js"></script>
+    <script type="text/javascript" src="./javascript/athena.js"></script>
+</head>
+
+<body>
+    <div id="chatbox" class="cu chat" data-style="telegram">
+        <div class="message text">
+            <!-- 大頭貼 -->
+            <div class="avatar">
+                <img src="./images/avatar/athena_default.jpg" />
+            </div>
+            <!-- 內容 -->
+            <div class="content">
+                <!-- 傳訊者 -->
+                <div class="author">
+                    熊貓貓
+                </div>
+                <!-- 文字 -->
+                <div class="text">
+                    <p>尼好，世界</p>
+                </div>
+                <!-- 中繼資料 -->
+                <div class="meta">
+                    <div class="item">
+                        13:20
+                    </div>
+                </div>
+            </div>
         </div>
-        <!-- 內容 -->
-        <div class="content">
-            <!-- 傳訊者 -->
-            <div class="author">
-                熊貓貓
-            </div>
-            <!-- 文字 -->
-            <div class="text">
-                <p>尼好，世界</p>
-            </div>
-            <!-- 中繼資料 -->
-            <div class="meta">
-                <div class="item">
-                    13:20
+
+
+        <div class="message text right read">
+            <!-- 內容 -->
+            <div class="content">
+                <!-- 傳訊者 -->
+                <div class="author">
+                    熊貓貓
+                </div>
+                <!-- 文字 -->
+                <div class="text">
+                    <p>尼好，世界</p>
+                </div>
+                <!-- 中繼資料 -->
+                <div class="meta">
+                    <div class="item">
+                        13:20
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-
-    <div class="message text right read">
-        <!-- 內容 -->
-        <div class="content">
-            <!-- 傳訊者 -->
-            <div class="author">
-                熊貓貓
-            </div>
-            <!-- 文字 -->
-            <div class="text">
-                <p>尼好，世界</p>
-            </div>
-            <!-- 中繼資料 -->
-            <div class="meta">
-                <div class="item">
-                    13:20
-                </div>
-            </div>
-        </div>
+    <div>
+        <textarea id="talk"></textarea>
+        <button>Send</button>
     </div>
-</div>
+</body>
 
-<div>
-    <textarea id="talk"></textarea>
-    <button>Send</button>
-</div>
+</html>
