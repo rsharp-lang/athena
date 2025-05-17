@@ -23,7 +23,10 @@ const deepseek = ollama::new(model_id, ollama_host);
 ollama::add_tool(deepseek, 
   name = "open_proj", 
   desc = "open a data analysis project backend session. A project id must be provided to make the reference to the target project to open.",
-  proj_id = "the project id for reference to the local workspace in the server filesystem, data files will be used in this project id related folder for make the downstream data analysis actions.") = function(proj_id) {
+  requires = "proj_id",
+  args = list(
+    proj_id = "the project id for reference to the local workspace in the server filesystem, data files will be used in this project id related folder for make the downstream data analysis actions.")
+  ) = function(proj_id) {
       return(`load project ${proj_id} into session, job done and ok!`);
   };
 
