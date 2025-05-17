@@ -18,7 +18,14 @@ const model_id as string = "qwen3:30b";
 const ollama_host as string = "127.0.0.1:11434";
 
 const wwwroot = http_fsdir(webContext);
-const ollama = ollama::new(model_id, ollama_host);
+const deepseek = ollama::new(model_id, ollama_host);
+
+ollama::add_tool(deepseek, 
+  name = "open_proj", 
+  desc = "open a data analysis project backend session. A project id must be provided to make the reference to the target project to open.",
+  proj_id = "the project id for reference to the local workspace in the server filesystem, data files will be used in this project id related folder for make the downstream data analysis actions.") = function(proj_id) {
+      return(`load project ${proj_id} into session, job done and ok!`);
+  };
 
 #' Route url as local R script file
 #' 
@@ -74,7 +81,7 @@ const handleHttpPost = function(req, response) {
   if (url$path == "/ollama_talk") {
     # call ollama chat
     let msg = req |> getPostData("msg"); 
-    let result = ollama |> chat(msg);
+    let result = deepseek |> chat(msg);
 
     http_success(result, s = response);
   } else {
