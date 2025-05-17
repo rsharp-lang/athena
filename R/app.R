@@ -1,4 +1,8 @@
+require(Rserver);
+
 imports "http" from "Rhttp";
+
+const APP_DIR = @dir;
 
 # title: R# web http server
 # author: xieguigang
@@ -8,7 +12,7 @@ imports "http" from "Rhttp";
 const httpPort as integer  = ?"--listen"  || 80;
 [@info "A directory path that contains the R script for running in this R# web server."]
 [@type "directory"]
-const webContext as string = ?"--wwwroot" || `${dirname(@script)}/../web.R`;
+const webContext as string = ?"--wwwroot" || `${APP_DIR}/../web/`;
 
 #' Route url as local R script file
 #' 
