@@ -18,6 +18,7 @@ namespace webapp {
 
             $ts.value("#talk", "");
             this.addMyChat(text);
+            ai_chat.chat_to(text, msg => this.addAIMsg(msg));
         }
 
         private addAIMsg(html: string) {

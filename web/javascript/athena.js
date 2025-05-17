@@ -13,6 +13,14 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var ai_chat;
+(function (ai_chat) {
+    ai_chat.ollama_api = "/ollama_talk";
+    function chat_to(msg, show_msg) {
+        $ts.post(ai_chat.ollama_api, { msg: msg }, function (result) { return show_msg(result.info); }, { sendContentType: true, wrapPlantTextError: true });
+    }
+    ai_chat.chat_to = chat_to;
+})(ai_chat || (ai_chat = {}));
 ///<reference path="../linq.d.ts" />
 var app;
 (function (app) {
@@ -45,9 +53,11 @@ var webapp;
             this.addAIMsg("Hi, I'm athena, talk to me for data analysis.");
         };
         chatbox.prototype.send_onclick = function () {
+            var _this = this;
             var text = $ts.value("#talk");
             $ts.value("#talk", "");
             this.addMyChat(text);
+            ai_chat.chat_to(text, function (msg) { return _this.addAIMsg(msg); });
         };
         chatbox.prototype.addAIMsg = function (html) {
             var box = $ts("#chatbox");

@@ -1,4 +1,5 @@
 require(Rserver);
+require(LLMs);
 
 const APP_DIR = @dir;
 

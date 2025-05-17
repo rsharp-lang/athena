@@ -1,4 +1,8 @@
 /// <reference path="../../src/linq.d.ts" />
+declare module ai_chat {
+    var ollama_api: string;
+    function chat_to(msg: string, show_msg: (str: string) => void): void;
+}
 declare namespace app {
     function run(): void;
 }
