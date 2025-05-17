@@ -11,6 +11,7 @@ const httpPort as integer  = ?"--listen"  || 80;
 [@info "A directory path that contains the R script for running in this R# web server."]
 [@type "directory"]
 const webContext as string = ?"--wwwroot" || `${APP_DIR}/../web/`;
+const wwwroot = http_fsdir(webContext);
 
 #' Route url as local R script file
 #' 
@@ -34,26 +35,20 @@ const router = function(url) {
 #' Handle http GET request
 #' 
 const handleHttpGet = function(req, response) {
-  const R as string = router(getUrl(req));
-
-  print("request from the browser client:");
-  str(getUrl(req));
-
-  print("view the request data headers:");
-  str(getHeaders(req));
-
-  print("this is the unparsed raw text of the http header message:");
-  print(getHttpRaw(req));
-
-  if (file.ext(R) != "r") {
-    if (file.exists(R)) {
-      writeLines(readLines(R), con = response);
-    } else {
-      response
-      |> httpError(404, `the required web assets file is not found on filesystem location: '${ normalizePath(R) }'!`)
-      ;
-    }
+  if (http_exists(wwwroot, req)) {
+    wwwroot |> host_file(req, response);
   } else {
+    const R as string = router(getUrl(req));
+
+    print("request from the browser client:");
+    str(getUrl(req));
+
+    print("view the request data headers:");
+    str(getHeaders(req));
+
+    print("this is the unparsed raw text of the http header message:");
+    print(getHttpRaw(req));
+
     if (file.exists(R)) {
       writeLines(source(R), con = response);
     } else {
