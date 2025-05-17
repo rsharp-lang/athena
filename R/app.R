@@ -71,10 +71,10 @@ const handleHttpPost = function(req, response) {
 
   if (url$path == "/ollama_talk") {
     # call ollama chat
-    let msg = req["msg"];
+    let msg = req |> getPostData("msg");
     let result = ollama |> chat(msg);
 
-    writeLines(JSON::json_encode(result), con = response);
+    http_success(result, s = response);
   } else {
     const R as string = router(getUrl(req));
 
