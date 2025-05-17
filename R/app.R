@@ -21,15 +21,13 @@ const router = function(url) {
   url <- trim(url$path, ".");
 
   if (file.ext(url) != "r") {
-    url;
-  } else {
-    let file = `${webContext}/${url}.R`;
-
     if (url == "/") {
-      file = "/index.R";
+      file = "/index.html";
     }
-    
-    return(file);
+
+    file.path(webContext, url);
+  } else {
+    file.path(webContext,`${url}.R`);
   }
 }
 
