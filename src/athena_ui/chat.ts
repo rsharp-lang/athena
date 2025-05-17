@@ -13,6 +13,7 @@ namespace webapp {
         public send_onclick() {
             let text = $ts.value("#talk");
 
+            $ts.value("#talk", "");
             this.addMyChat(text);
         }
 
@@ -22,7 +23,7 @@ namespace webapp {
                 class: ["message", "text", "right", "read"]
             }).display($ts("<div>", { class: "content" })
                 .appendElement($ts("<div>", { class: "text" }).display(`<p>${text}</p>`))
-                .appendElement($ts("<div>", { class: "meta" }).display(`<div class="item">${(new Date()).toString()}</div>`)));
+                .appendElement($ts("<div>", { class: "meta" }).display(`<div class="item">${(new Date()).toTimeString()}</div>`)));
 
             box.appendElement(msg_right);
         }
