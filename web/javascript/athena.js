@@ -17,16 +17,25 @@ var ai_chat;
 (function (ai_chat) {
     ai_chat.ollama_api = "/ollama_talk";
     function chat_to(msg, show_msg) {
-        $ts.post(ai_chat.ollama_api, { msg: msg }, function (result) { return show_msg(format_html(result.info)); }, { sendContentType: true, wrapPlantTextError: true });
+        $ts.post(ai_chat.ollama_api, { msg: msg }, function (result) { return show_msg(format_html(result.info), think_text(result.info)); }, { sendContentType: true, wrapPlantTextError: true });
     }
     ai_chat.chat_to = chat_to;
+    function think_text(out) {
+        if (typeof out == "string") {
+            return null;
+        }
+        else {
+            return out.think;
+        }
+    }
+    ai_chat.think_text = think_text;
     function format_html(out) {
         var markedjs = window.marked;
         if (typeof out == "string") {
             return out;
         }
         else {
-            return "<span style=\"color: gray; font-size: 0.9em;\">".concat(out.think, "</span> \n                <br />\n                <br />\n                ").concat(markedjs.parse(out.output));
+            return markedjs.parse(out.output);
         }
     }
     ai_chat.format_html = format_html;
@@ -67,17 +76,33 @@ var webapp;
             var text = $ts.value("#talk");
             $ts.value("#talk", "");
             this.addMyChat(text);
-            ai_chat.chat_to(text, function (msg) { return _this.addAIMsg(msg); });
+            ai_chat.chat_to(text, function (msg, think) { return _this.addAIMsg(msg, think); });
         };
-        chatbox.prototype.addAIMsg = function (html) {
+        chatbox.prototype.addAIMsg = function (html, think) {
+            if (think === void 0) { think = null; }
             var box = $ts("#chatbox");
-            var ai_msg = $ts("<div>", {
-                class: ["message", "text"]
-            }).appendElement($ts("<div>", { class: "avatar" }).display("<img src=\"".concat(this.ai_avatar_url, "\">")))
-                .appendElement($ts("<div>", { class: "content" })
-                .appendElement($ts("<div>", { class: "author" }).display(this.ai_name))
-                .appendElement($ts("<div>", { class: "text" }).display("<p>".concat(html, "</p>")))
-                .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat(chatbox.now(), "</div>"))));
+            var ai_msg;
+            if (!think) {
+                ai_msg = $ts("<div>", {
+                    class: ["message", "text"]
+                }).appendElement($ts("<div>", { class: "avatar" }).display("<img src=\"".concat(this.ai_avatar_url, "\">")))
+                    .appendElement($ts("<div>", { class: "content" })
+                    .appendElement($ts("<div>", { class: "author" }).display(this.ai_name))
+                    .appendElement($ts("<div>", { class: "text" }).display("<p>".concat(html, "</p>")))
+                    .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat(chatbox.now(), "</div>"))));
+            }
+            else {
+                ai_msg = $ts("<div>", {
+                    class: ["message", "text"]
+                }).appendElement($ts("<div>", { class: "avatar" }).display("<img src=\"".concat(this.ai_avatar_url, "\">")))
+                    .appendElement($ts("<div>", { class: "content" })
+                    .appendElement($ts("<div>", { class: "author" }).display(this.ai_name))
+                    .appendElement($ts("<div>", { class: "reply" })
+                    .appendElement($ts("<div>", { class: "author" }).display("AI think"))
+                    .appendElement($ts("<div>", { class: "content" }).display("<div class=\"text\">".concat(think, "</div>"))))
+                    .appendElement($ts("<div>", { class: "text" }).display("<p>".concat(html, "</p>")))
+                    .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat(chatbox.now(), "</div>"))));
+            }
             box.appendElement(ai_msg);
         };
         chatbox.now = function () {

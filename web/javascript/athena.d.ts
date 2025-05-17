@@ -8,7 +8,8 @@ declare module ai_chat {
         think: string;
         output: string;
     }
-    function chat_to(msg: string, show_msg: (str: string) => void): void;
+    function chat_to(msg: string, show_msg: (ai_text: string, think?: string) => void): void;
+    function think_text(out: output | string): string;
     function format_html(out: output | string): string;
 }
 declare namespace app {

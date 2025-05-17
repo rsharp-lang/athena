@@ -18,20 +18,38 @@ namespace webapp {
 
             $ts.value("#talk", "");
             this.addMyChat(text);
-            ai_chat.chat_to(text, msg => this.addAIMsg(msg));
+            ai_chat.chat_to(text, (msg, think) => this.addAIMsg(msg, think));
         }
 
-        private addAIMsg(html: string) {
+        private addAIMsg(html: string, think: string = null) {
             let box = $ts("#chatbox");
-            let ai_msg = $ts("<div>", {
-                class: ["message", "text"]
-            }).appendElement($ts("<div>", { class: "avatar" }).display(`<img src="${this.ai_avatar_url}">`))
-                .appendElement($ts("<div>", { class: "content" })
-                    .appendElement($ts("<div>", { class: "author" }).display(this.ai_name))
-                    .appendElement($ts("<div>", { class: "text" }).display(`<p>${html}</p>`))
-                    .appendElement($ts("<div>", { class: "meta" }).display(`<div class="item">${chatbox.now()}</div>`)
-                    )
-                );
+            let ai_msg: IHTMLElement
+
+            if (!think) {
+                ai_msg = $ts("<div>", {
+                    class: ["message", "text"]
+                }).appendElement($ts("<div>", { class: "avatar" }).display(`<img src="${this.ai_avatar_url}">`))
+                    .appendElement($ts("<div>", { class: "content" })
+                        .appendElement($ts("<div>", { class: "author" }).display(this.ai_name))
+                        .appendElement($ts("<div>", { class: "text" }).display(`<p>${html}</p>`))
+                        .appendElement($ts("<div>", { class: "meta" }).display(`<div class="item">${chatbox.now()}</div>`)
+                        )
+                    );
+            } else {
+                ai_msg = $ts("<div>", {
+                    class: ["message", "text"]
+                }).appendElement($ts("<div>", { class: "avatar" }).display(`<img src="${this.ai_avatar_url}">`))
+                    .appendElement($ts("<div>", { class: "content" })
+                        .appendElement($ts("<div>", { class: "author" }).display(this.ai_name))
+                        .appendElement($ts("<div>", { class: "reply" })
+                            .appendElement($ts("<div>", { class: "author" }).display("AI think"))
+                            .appendElement($ts("<div>", { class: "content" }).display(`<div class="text">${think}</div>`))
+                        )
+                        .appendElement($ts("<div>", { class: "text" }).display(`<p>${html}</p>`))
+                        .appendElement($ts("<div>", { class: "meta" }).display(`<div class="item">${chatbox.now()}</div>`)
+                        )
+                    );
+            }
 
             box.appendElement(ai_msg);
         }
