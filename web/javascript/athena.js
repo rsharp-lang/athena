@@ -46,12 +46,16 @@ var webapp;
             this.addMyChat(text);
         };
         chatbox.prototype.addMyChat = function (text) {
+            var date = new Date();
+            var hours = String(date.getHours()).padStart(2, '0'); // 补零到两位数
+            var minutes = String(date.getMinutes()).padStart(2, '0');
+            var timeStr = "".concat(hours, ":").concat(minutes); // 输出示例：13:20
             var box = $ts("#chatbox");
             var msg_right = $ts("<div>", {
                 class: ["message", "text", "right", "read"]
             }).display($ts("<div>", { class: "content" })
                 .appendElement($ts("<div>", { class: "text" }).display("<p>".concat(text, "</p>")))
-                .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat((new Date()).toTimeString(), "</div>"))));
+                .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat(timeStr, "</div>"))));
             box.appendElement(msg_right);
         };
         return chatbox;
