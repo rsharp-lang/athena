@@ -40,6 +40,19 @@ var webapp;
         });
         chatbox.prototype.init = function () {
         };
+        chatbox.prototype.send_onclick = function () {
+            var text = $ts.value("#talk");
+            this.addMyChat(text);
+        };
+        chatbox.prototype.addMyChat = function (text) {
+            var box = $ts("#chatbox");
+            var msg_right = $ts("<div>", {
+                class: ["message", "text", "right", "read"]
+            }).display($ts("<div>", { class: "content" })
+                .appendElement($ts("<div>", { class: "text" }).display("<p>".concat(text, "</p>")))
+                .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat((new Date()).toString(), "</div>"))));
+            box.appendElement(msg_right);
+        };
         return chatbox;
     }(Bootstrap));
     webapp.chatbox = chatbox;

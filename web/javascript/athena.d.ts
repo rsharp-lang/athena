@@ -6,5 +6,7 @@ declare namespace webapp {
     class chatbox extends Bootstrap {
         get appName(): string;
         protected init(): void;
+        send_onclick(): void;
+        private addMyChat;
     }
 }
