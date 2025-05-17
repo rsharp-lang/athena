@@ -1,7 +1,5 @@
 require(Rserver);
 
-imports "http" from "Rhttp";
-
 const APP_DIR = @dir;
 
 # title: R# web http server
@@ -20,7 +18,19 @@ const webContext as string = ?"--wwwroot" || `${APP_DIR}/../web/`;
 #'     http request.
 #' 
 const router = function(url) {
-  `${webContext}/${ trim(url$path, ".") }.R`;
+  url <- trim(url$path, ".");
+
+  if (file.ext(url) != "r") {
+    url;
+  } else {
+    let file = `${webContext}/${url}.R`;
+
+    if (url == "/") {
+      file = "/index.R";
+    }
+    
+    return(file);
+  }
 }
 
 #' Handle http GET request
@@ -37,12 +47,22 @@ const handleHttpGet = function(req, response) {
   print("this is the unparsed raw text of the http header message:");
   print(getHttpRaw(req));
 
-  if (file.exists(R)) {
-    writeLines(source(R), con = response);
+  if (file.ext(R) != "r") {
+    if (file.exists(R)) {
+      writeLines(readLines(R), con = response);
+    } else {
+      response
+      |> httpError(404, `the required web assets file is not found on filesystem location: '${ normalizePath(R) }'!`)
+      ;
+    }
   } else {
-    response
-    |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
-    ;
+    if (file.exists(R)) {
+      writeLines(source(R), con = response);
+    } else {
+      response
+      |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
+      ;
+    }
   }
 }
 
