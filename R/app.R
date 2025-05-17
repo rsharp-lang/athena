@@ -1,6 +1,8 @@
 require(Rserver);
 require(LLMs);
 
+imports "ollama" from "Agent";
+
 const APP_DIR = @dir;
 
 # title: R# web http server
@@ -71,7 +73,7 @@ const handleHttpPost = function(req, response) {
 
   if (url$path == "/ollama_talk") {
     # call ollama chat
-    let msg = req |> getPostData("msg");
+    let msg = req |> getPostData("msg"); 
     let result = ollama |> chat(msg);
 
     http_success(result, s = response);

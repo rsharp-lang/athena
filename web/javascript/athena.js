@@ -17,9 +17,19 @@ var ai_chat;
 (function (ai_chat) {
     ai_chat.ollama_api = "/ollama_talk";
     function chat_to(msg, show_msg) {
-        $ts.post(ai_chat.ollama_api, { msg: msg }, function (result) { return show_msg(result.info); }, { sendContentType: true, wrapPlantTextError: true });
+        $ts.post(ai_chat.ollama_api, { msg: msg }, function (result) { return show_msg(format_html(result.info)); }, { sendContentType: true, wrapPlantTextError: true });
     }
     ai_chat.chat_to = chat_to;
+    function format_html(out) {
+        var markedjs = window.marked;
+        if (typeof out == "string") {
+            return out;
+        }
+        else {
+            return "<span style=\"color: gray; font-size: 0.9em;\">".concat(markedjs.parse(out.think), "</span> \n                <br />\n                <br />\n                ").concat(markedjs.parse(out.output));
+        }
+    }
+    ai_chat.format_html = format_html;
 })(ai_chat || (ai_chat = {}));
 ///<reference path="../linq.d.ts" />
 var app;

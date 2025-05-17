@@ -1,7 +1,15 @@
 /// <reference path="../../src/linq.d.ts" />
 declare module ai_chat {
     var ollama_api: string;
+    interface markdown {
+        parse(md: string): string;
+    }
+    interface output {
+        think: string;
+        output: string;
+    }
     function chat_to(msg: string, show_msg: (str: string) => void): void;
+    function format_html(out: output | string): string;
 }
 declare namespace app {
     function run(): void;
