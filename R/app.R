@@ -22,7 +22,7 @@ const router = function(url) {
 
   if (file.ext(url) != "r") {
     if (url == "/") {
-      file = "/index.html";
+      url = "/index.html";
     }
 
     file.path(webContext, url);
