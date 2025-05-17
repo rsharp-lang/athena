@@ -26,7 +26,7 @@ var ai_chat;
             return out;
         }
         else {
-            return "<span style=\"color: gray; font-size: 0.9em;\">".concat(markedjs.parse(out.think), "</span> \n                <br />\n                <br />\n                ").concat(markedjs.parse(out.output));
+            return "<span style=\"color: gray; font-size: 0.9em;\">".concat(out.think, "</span> \n                <br />\n                <br />\n                ").concat(markedjs.parse(out.output));
         }
     }
     ai_chat.format_html = format_html;

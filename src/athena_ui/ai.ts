@@ -21,7 +21,7 @@ module ai_chat {
         if (typeof out == "string") {
             return out;
         } else {
-            return `<span style="color: gray; font-size: 0.9em;">${markedjs.parse(out.think)}</span> 
+            return `<span style="color: gray; font-size: 0.9em;">${out.think}</span> 
                 <br />
                 <br />
                 ${markedjs.parse(out.output)}`;
