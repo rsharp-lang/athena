@@ -5,8 +5,12 @@ declare namespace app {
 declare namespace webapp {
     class chatbox extends Bootstrap {
         get appName(): string;
+        ai_avatar_url: string;
+        ai_name: string;
         protected init(): void;
         send_onclick(): void;
+        private addAIMsg;
+        private static now;
         private addMyChat;
     }
 }

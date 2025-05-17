@@ -29,7 +29,10 @@ var webapp;
     var chatbox = /** @class */ (function (_super) {
         __extends(chatbox, _super);
         function chatbox() {
-            return _super !== null && _super.apply(this, arguments) || this;
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.ai_avatar_url = "./images/avatar/athena_default.jpg";
+            _this.ai_name = "Athena";
+            return _this;
         }
         Object.defineProperty(chatbox.prototype, "appName", {
             get: function () {
@@ -39,23 +42,38 @@ var webapp;
             configurable: true
         });
         chatbox.prototype.init = function () {
+            this.addAIMsg("Hi, I'm athena, talk to me for data analysis.");
         };
         chatbox.prototype.send_onclick = function () {
             var text = $ts.value("#talk");
             $ts.value("#talk", "");
             this.addMyChat(text);
         };
-        chatbox.prototype.addMyChat = function (text) {
+        chatbox.prototype.addAIMsg = function (html) {
+            var box = $ts("#chatbox");
+            var ai_msg = $ts("<div>", {
+                class: ["message", "text"]
+            }).appendElement($ts("<div>", { class: "avatar" }).display("<img src=\"".concat(this.ai_avatar_url, "\">")))
+                .appendElement($ts("<div>", { class: "content" })
+                .appendElement($ts("<div>", { class: "author" }).display(this.ai_name))
+                .appendElement($ts("<div>", { class: "text" }).display("<p>".concat(html, "</p>")))
+                .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat(chatbox.now(), "</div>"))));
+            box.appendElement(ai_msg);
+        };
+        chatbox.now = function () {
             var date = new Date();
             var hours = String(date.getHours()).padStart(2, '0'); // 补零到两位数
             var minutes = String(date.getMinutes()).padStart(2, '0');
             var timeStr = "".concat(hours, ":").concat(minutes); // 输出示例：13:20
+            return timeStr;
+        };
+        chatbox.prototype.addMyChat = function (text) {
             var box = $ts("#chatbox");
             var msg_right = $ts("<div>", {
                 class: ["message", "text", "right", "read"]
             }).display($ts("<div>", { class: "content" })
                 .appendElement($ts("<div>", { class: "text" }).display("<p>".concat(text, "</p>")))
-                .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat(timeStr, "</div>"))));
+                .appendElement($ts("<div>", { class: "meta" }).display("<div class=\"item\">".concat(chatbox.now(), "</div>"))));
             box.appendElement(msg_right);
         };
         return chatbox;
