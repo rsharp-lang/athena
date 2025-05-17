@@ -12,7 +12,11 @@ const httpPort as integer  = ?"--listen"  || 80;
 [@info "A directory path that contains the R script for running in this R# web server."]
 [@type "directory"]
 const webContext as string = ?"--wwwroot" || `${APP_DIR}/../web/`;
+const model_id as string = "qwen3:30b";
+const ollama_host as string = "127.0.0.1:11434";
+
 const wwwroot = http_fsdir(webContext);
+const ollama = ollama::new(model_id, ollama_host);
 
 #' Route url as local R script file
 #' 
@@ -63,19 +67,29 @@ const handleHttpGet = function(req, response) {
 #' Handle http POST request
 #' 
 const handleHttpPost = function(req, response) {
-  const R as string = router(getUrl(req));
+  const url = getUrl(req);
 
-  str(getUrl(req));
-  str(getHeaders(req));
+  if (url$path == "/ollama_talk") {
+    # call ollama chat
+    let msg = req["msg"];
+    let result = ollama |> chat(msg);
 
-  print(getHttpRaw(req));
-
-  if (file.exists(R)) {
-    writeLines(source(R), con = response);
+    writeLines(JSON::json_encode(result), con = response);
   } else {
-    response
-    |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
-    ;
+    const R as string = router(getUrl(req));
+
+    str(getUrl(req));
+    str(getHeaders(req));
+
+    print(getHttpRaw(req));
+
+    if (file.exists(R)) {
+      writeLines(source(R), con = response);
+    } else {
+      response
+      |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
+      ;
+    }
   }
 }
 
