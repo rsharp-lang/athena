@@ -1,22 +1,54 @@
-﻿<html>
+﻿<!doctype html>
+
+<html lang="en" class="h-100">
 
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <meta name="generator" content="Hugo 0.84.0">
     <meta name="app" content="chatbox" />
+    <meta name="theme-color" content="#7952b3">
 
+    <title>Sticky Footer Template · Bootstrap v5.0</title>
+
+    <link rel="icon" href="./images/ChatUI.svg" type="image/svg+xml" />
+    <link href="./vendor/bootstrap-5.3.6-dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="./styles/ChatUI.min.css" rel="stylesheet" />
 
     <script type="text/javascript" src="./javascript/linq.min.js"></script>
     <script type="text/javascript" src="./javascript/athena.js"></script>
+    <script type="text/javascript" src="./vendor/bootstrap-5.3.6-dist/js/bootstrap.bundle.min.js"></script>
 </head>
 
-<body>
-    <div id="chatbox" class="cu chat" data-style="telegram">
-    </div>
+<body class="d-flex flex-column h-100">
 
-    <div>
-        <textarea id="talk"></textarea>
-        <button id="send">Send</button>
-    </div>
+    <main class="flex-shrink-0">
+        <div class="container">
+
+            <div class="row">
+                <div class="col">
+                    <div id="chatbox" class="cu chat" data-style="telegram">
+                    </div>
+                </div>
+            </div>
+
+            <br />
+            <br />
+
+            <div class="row">
+                <div class="col-10">
+                    <textarea id="talk" class="form-control" rows="9"></textarea>
+                </div>
+                <div class="col">
+                    <button type="button" class="btn btn-primary" id="send">Send</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
 </body>
 
 </html>
