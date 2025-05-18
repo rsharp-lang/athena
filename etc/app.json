@@ -1,0 +1,5 @@
+{
+  "ollama_server": "127.0.0.1:11434",
+  "ollama_model": "qwen3:30b",
+  "listen": 80
+}

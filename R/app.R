@@ -3,20 +3,15 @@ require(LLMs);
 
 imports "ollama" from "Agent";
 
-const APP_DIR = @dir;
+include(relative_work("../etc/app.json"));
 
 # title: R# web http server
 # author: xieguigang
 # description: a commandline R# script for running a http web server.
-
-[@info "the http port for listen, 80 port number is used by default."]
-const httpPort as integer  = ?"--listen"  || 80;
-[@info "A directory path that contains the R script for running in this R# web server."]
-[@type "directory"]
-const webContext as string = ?"--wwwroot" || `${APP_DIR}/../web/`;
-const model_id as string = "qwen3:30b";
-const ollama_host as string = "127.0.0.1:11434";
-
+const httpPort as integer  = getOption("listen");
+const webContext as string = relative_work("../web/");
+const model_id as string = getOption("ollama_model");
+const ollama_host as string = getOption("ollama_server");
 const wwwroot = http_fsdir(webContext);
 const deepseek = ollama::new(model_id, ollama_host);
 
