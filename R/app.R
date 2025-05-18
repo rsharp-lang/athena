@@ -30,6 +30,17 @@ ollama::add_tool(deepseek,
       return(`load project ${proj_id} into session, job done and ok!`);
   };
 
+ollama::add_tool(deepseek, 
+  name = "open_file",
+  desc = "open a csv table file that associated with the analysis module in the opened project workspace. The project workspace is the last opened project session.",
+  requires = ["proj_id", "module"],
+  args = list(
+     proj_id = "the last opened project id, which is required for associated the project workspace for work around.",
+     module = "the analysis module name, the target data file is associated with this specific module name"
+  )) = function(proj_id, module ) {
+      return(`open the module data file success, table contains 3 sample rows and 255 feature columns`); 
+  }
+
 #' Route url as local R script file
 #' 
 #' @param url the url object that parsed from the
