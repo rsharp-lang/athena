@@ -1,0 +1,27 @@
+
+#' Handle http GET request
+#' 
+const handleHttpGet = function(wwwroot, webContext, req, response) {
+    print("request from the browser client:");
+    str(getUrl(req));
+
+    print("view the request data headers:");
+    str(getHeaders(req));
+
+    print("this is the unparsed raw text of the http header message:");
+    print(getHttpRaw(req));
+
+    if (http_exists(wwwroot, req)) {
+        wwwroot |> host_file(req, response);
+    } else {
+        const R as string = router(getUrl(req), webContext);
+
+        if (file.exists(R)) {
+            writeLines(source(R), con = response);
+        } else {
+            response
+            |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
+            ;
+        }
+    }
+}
