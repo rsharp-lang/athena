@@ -1,17 +1,19 @@
-const run_http = function(deepseek, httpPort, webContext) {
-    let wwwroot = http_fsdir(webContext);
+const run_http = function(httpPort = "80", webContext = "./wwwroot") {
+    # config runtime
+    set(globalenv(), "wwwroot") <- http_fsdir(webContext);
+    set(globalenv(), "deepseek") <- Athena::init_ollama();
 
     cat("\n\n");
 
     http::http_socket()
     |> headers(
-        "X-Powered-By" = "R# web server",
+        "X-Powered-By" = "R# http server",
         "Author"       = "xieguigang <xie.guigang@gcmodeller.org>",
         "Github"       = "https://github.com/rsharp-lang/Rserver",
         "Organization" = "R# language <https://github.com/rsharp-lang/>"
     )
-    |> httpMethod("GET",  [req, response] => handleHttpGet(wwwroot, webContext, req, response))
-    |> httpMethod("POST", [req, response] => handleHttpPost(deepseek, webContext, req, response))
+    |> httpMethod("GET",  Athena::handleHttpGet)
+    |> httpMethod("POST", Athena::handleHttpPost)
     |> httpMethod("PUT",  [req, response] => writeLines("HTTP PUT test success!", con = response))
     |> listen(port = httpPort)
     ;

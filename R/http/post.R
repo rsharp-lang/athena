@@ -1,8 +1,19 @@
 
 #' Handle http POST request
 #' 
-const handleHttpPost = function(deepseek, webContext, req, response) {
+const handleHttpPost = function(req, response) {
+  const deepseek = get("deepseek", globalenv());
+  const wwwroot = get("wwwroot", globalenv());
+  const webContext = [wwwroot]::wwwroot;
   const url = getUrl(req);
+  const verbose = as.logical(getOption("verbose", "FALSE"));
+
+  if (verbose) {
+    str(getUrl(req));
+    str(getHeaders(req));
+
+    print(getHttpRaw(req));
+  }
 
   if (url$path == "/ollama_talk") {
     # call ollama chat
@@ -12,11 +23,6 @@ const handleHttpPost = function(deepseek, webContext, req, response) {
     http_success(result, s = response);
   } else {
     const R as string = router(getUrl(req), webContext);
-
-    str(getUrl(req));
-    str(getHeaders(req));
-
-    print(getHttpRaw(req));
 
     if (file.exists(R)) {
       writeLines(source(R), con = response);

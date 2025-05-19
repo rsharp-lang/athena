@@ -14,7 +14,7 @@ declare namespace Athena {
    function build_ollama_tools(deepseek?: any): object;
    /**
    */
-   function handleHttpGet(wwwroot: any, webContext: any, req: any, response: any): object;
+   function handleHttpGet(wwwroot: any, req: any, response: any): object;
    /**
    */
    function handleHttpPost(deepseek: any, webContext: any, req: any, response: any): object;
