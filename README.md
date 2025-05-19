@@ -8,7 +8,8 @@ Athena NeuroCore System based on LLMs for run data analysis
 
 ### 1. create R# package with tools function
 
-Just create a tool function for called by LLMs AI:
+Create a regular R package in Rstudio, and then coding your tools function.
+A very simple demo that show how to create a tool function for called by LLMs AI:
 
 ```r
 #' read text file
@@ -30,8 +31,27 @@ the function that show above then will be transcripted as the tool model descrip
 
 ```json
 {
-    "name": "read_text",
-    
+    // read from [@ollama "read_text"] custom attribute
+    "name": "read_text",  
+    // description information is generated from 
+    // the roxygon description/details section 
+    // document. 
+    "description": "read the given file as plain text file, this function returns the plain text data of the input file",
+    // function parameters description is also generated
+    // from the roxygon document content
+    "parameters": {
+        "required": ["file"],
+        "properties": {
+            "file": {
+                "name": "file",
+                "description": "the file path of the target text file for read by this function"
+            }
+        }
+    }
 }
 ```
+
+for the model json transcription implementation details code, view the ``build_ollama_tools`` function.
+
+### 2. then build the R# package 
 
