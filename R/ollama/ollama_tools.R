@@ -15,18 +15,22 @@ const build_ollama_tools = function(deepseek = NULL) {
         let attrs = .Internal::attributes(func);
         let tool_name = attrs$ollama;
         let roxygon = as.list(.Internal::docs(func));
+        let desc_str = which([roxygon$description, roxygon$details], s -> nchar(s) > 0);
+        let args = lapply(roxygon$parameters, t -> t$text, names = t -> t$name);
+        let requires = which(roxygon$declares$parameters, p -> is.null(p$text)) |> sapply(p -> p$name);
 
         cat(`found ollama tool: ${tool_name}\n`);
 
         str(roxygon);
+        str(args);
+        print(desc_str);
+        print(requires);
         stop();
 
         ollama::add_tool(deepseek, 
             name = tool_name, 
-            desc = "",
-            requires = "",
-            args = list(
-                proj_id = "the project id for reference to the local workspace in the server filesystem, data files will be used in this project id related folder for make the downstream data analysis actions.")
-            ) = func;
+            desc = paste(desc_str, sepc = " "),
+            requires = requires,
+            args = args) = func;
     }
 }
