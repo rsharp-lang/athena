@@ -2,8 +2,6 @@
 
 Athena NeuroCore System based on LLMs for run data analysis
 
-![](docs/Screenshot_19-5-2025_232939_localhost.jpeg)
-
 ## how to develop
 
 ### 1. create R# package with tools function
@@ -55,3 +53,41 @@ for the model json transcription implementation details code, view the ``build_o
 
 ### 2. then build the R# package 
 
+```bash
+# build package
+Rscript --build /src /path/to/package_dir /save ./pkg.zip --skip-src-build
+# make install into your local package library
+R# --install.packages ./pkg.zip
+```
+
+### 3. Just loading your package
+
+Finally, you just needs to loading your R package in the system, no more setup!
+
+```r
+# XXXX is the package that you've created and build in step 2
+require(XXXX);
+require(Athena);
+
+include(relative_work("../etc/app.json"));
+
+# run web app
+run_http(
+  httpPort = getOption("listen"), 
+  webContext = dirname(system.file("web/index.html", package = "Athena"))
+);
+```
+
+system config is also simple:
+
+```json
+{
+  "ollama_server": "127.0.0.1:11434",
+  "ollama_model": "qwen3:30b",
+  "listen": 80
+}
+```
+
+Talk to your AI, and then AI help you make the data analysis!
+
+![](docs/Screenshot_19-5-2025_232939_localhost.jpeg)
