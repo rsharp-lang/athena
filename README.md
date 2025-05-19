@@ -1,5 +1,6 @@
-# athena
-Athena AI workshop based on LLMs for run data analysis
+# Athena NeuroCore System
+
+Athena NeuroCore System based on LLMs for run data analysis
 
 ![](docs/Screenshot_19-5-2025_232939_localhost.jpeg)
 
@@ -33,3 +34,4 @@ the function that show above then will be transcripted as the tool model descrip
     
 }
 ```
+
