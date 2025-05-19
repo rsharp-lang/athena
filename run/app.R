@@ -1,4 +1,4 @@
-require(Rserver);
+require(Athena);
 
 include(relative_work("../etc/app.json"));
 
@@ -9,7 +9,7 @@ const httpPort as integer  = getOption("listen");
 const webContext as string = relative_work("../web/");
 
 const wwwroot = http_fsdir(webContext);
-
+const deepseek = Athena::init_ollama();
 
 ollama::add_tool(deepseek, 
   name = "open_proj", 
