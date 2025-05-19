@@ -14,10 +14,10 @@ declare namespace Athena {
    function build_ollama_tools(deepseek?: any): object;
    /**
    */
-   function handleHttpGet(wwwroot: any, req: any, response: any): object;
+   function handleHttpGet(req: any, response: any): object;
    /**
    */
-   function handleHttpPost(deepseek: any, webContext: any, req: any, response: any): object;
+   function handleHttpPost(req: any, response: any): object;
    /**
    */
    function init_ollama(): object;
@@ -28,6 +28,8 @@ declare namespace Athena {
    */
    function router(url: any, webContext: any): object;
    /**
+     * @param httpPort default value Is ``80``.
+     * @param webContext default value Is ``./wwwroot``.
    */
-   function run_http(deepseek: any, httpPort: any, webContext: any): object;
+   function run_http(httpPort?: any, webContext?: any): object;
 }
