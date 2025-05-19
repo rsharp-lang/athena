@@ -41,7 +41,7 @@ const build_ollama_tools = function(deepseek = NULL) {
         let args = lapply(roxygon$parameters, t -> t$text, names = t -> t$name);
         let requires = which(roxygon$declares$parameters, p -> is.null(p$text)) |> sapply(p -> p$name);
 
-        cat(`found ollama tool: ${tool_name}\n`);
+        cat(`[ollama]attach_tool: ${tool_name}\n`);
 
         ollama::add_tool(deepseek, 
             name = tool_name, 
