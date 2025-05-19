@@ -1,0 +1,12 @@
+Package: Athena
+Type: Package
+Title: Athena AI system
+Version: 0.1.0
+Author: xieguigang
+Maintainer: xieguigang <xie.guigang@gcmodeller.org>
+Description: Compose the data analysis workflow, this is a package helper
+   for create modular analysis workflow.
+License: MIT
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
