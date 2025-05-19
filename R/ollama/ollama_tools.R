@@ -11,10 +11,14 @@ const build_ollama_tools = function(deepseek = NULL) {
     });
     
     for(let func in ollama_tools) {
+        # [@ollama "tool_name"]
         let attrs = .Internal::attributes(func);
+        let tool_name = attrs$ollama;
+
+        cat(`found ollama tool: ${tool_name}\n`);
 
         ollama::add_tool(deepseek, 
-            name = attrs$ollama, 
+            name = tool_name, 
             desc = "",
             requires = "",
             args = list(
