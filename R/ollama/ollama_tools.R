@@ -1,6 +1,7 @@
 #' build the ollama ai tools set from the R# runtime objects
 #' 
 const build_ollama_tools = function(deepseek = NULL) {
+    let sys_info <- .Internal::description("Athena");
     let current_env <- environment(); 
     let all_functions <- ls("Function", envir = current_env);
     let ollama_tools <- all_functions |> which(function(f) {
@@ -9,7 +10,7 @@ const build_ollama_tools = function(deepseek = NULL) {
 
         nchar(ollama) > 0; 
     });
-    
+        
     for(let func in ollama_tools) {
         # [@ollama "tool_name"]
         let attrs = .Internal::attributes(func);
@@ -27,4 +28,20 @@ const build_ollama_tools = function(deepseek = NULL) {
             requires = requires,
             args = args) = func;
     }
+
+    ollama::add_tool(deepseek, 
+        name = "sys_info", 
+        desc = "get information about yourself when the user want you to introduce your self. this function requires no parameters.",
+        requires = [],
+        args = list()
+    ) = function() {
+        {
+            "name": "Athena NeuroCore System",
+            "introduce": sys_info$description,
+            "developer": "谢桂纲, email: xie.guigang@gcmodeller.org",
+            "programming language": "R# programming language(https://rsharp.net/), a microsoft .net clr programming language designed and developed by 谢桂纲.",
+            "github": "https://github.com/rsharp-lang/athena",
+            "license": sys_info$license
+        };
+    };
 }

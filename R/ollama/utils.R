@@ -1,3 +1,5 @@
+# internal tools for ollama LLMs function call
+
 #' read text file
 #' 
 #' @details read the given file as plain text file, this function 
