@@ -14,6 +14,7 @@ const build_ollama_tools = function(deepseek = NULL) {
         # [@ollama "tool_name"]
         let attrs = .Internal::attributes(func);
         let tool_name = attrs$ollama;
+        let roxygon = as.list(.Internal::docs(func));
 
         cat(`found ollama tool: ${tool_name}\n`);
 
