@@ -1,7 +1,4 @@
 require(Rserver);
-require(LLMs);
-
-imports "ollama" from "Agent";
 
 include(relative_work("../etc/app.json"));
 
@@ -10,10 +7,9 @@ include(relative_work("../etc/app.json"));
 # description: a commandline R# script for running a http web server.
 const httpPort as integer  = getOption("listen");
 const webContext as string = relative_work("../web/");
-const model_id as string = getOption("ollama_model");
-const ollama_host as string = getOption("ollama_server");
+
 const wwwroot = http_fsdir(webContext);
-const deepseek = ollama::new(model_id, ollama_host);
+
 
 ollama::add_tool(deepseek, 
   name = "open_proj", 
