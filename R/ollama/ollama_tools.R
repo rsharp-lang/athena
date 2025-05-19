@@ -21,12 +21,6 @@ const build_ollama_tools = function(deepseek = NULL) {
 
         cat(`found ollama tool: ${tool_name}\n`);
 
-        str(roxygon);
-        str(args);
-        print(desc_str);
-        print(requires);
-        stop();
-
         ollama::add_tool(deepseek, 
             name = tool_name, 
             desc = paste(desc_str, sepc = " "),
