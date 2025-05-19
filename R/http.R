@@ -39,11 +39,6 @@ const router = function(url, webContext) {
 #' Handle http GET request
 #' 
 const handleHttpGet = function(wwwroot, webContext, req, response) {
-  if (http_exists(wwwroot, req)) {
-    wwwroot |> host_file(req, response);
-  } else {
-    const R as string = router(getUrl(req), webContext);
-
     print("request from the browser client:");
     str(getUrl(req));
 
@@ -53,14 +48,19 @@ const handleHttpGet = function(wwwroot, webContext, req, response) {
     print("this is the unparsed raw text of the http header message:");
     print(getHttpRaw(req));
 
-    if (file.exists(R)) {
-      writeLines(source(R), con = response);
+    if (http_exists(wwwroot, req)) {
+        wwwroot |> host_file(req, response);
     } else {
-      response
-      |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
-      ;
+        const R as string = router(getUrl(req), webContext);
+
+        if (file.exists(R)) {
+            writeLines(source(R), con = response);
+        } else {
+            response
+            |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
+            ;
+        }
     }
-  }
 }
 
 #' Handle http POST request
