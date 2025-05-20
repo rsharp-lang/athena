@@ -19,7 +19,7 @@ const handleHttpGet = function(req, response) {
     }
 
     if (apps |> check_url(req)) {
-        apps |> handle(req, response);
+        apps |> router::handle(req, response);
     } else {
         if (http_exists(wwwroot, req)) {
             wwwroot |> host_file(req, response);

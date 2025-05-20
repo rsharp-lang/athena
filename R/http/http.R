@@ -8,6 +8,7 @@ const run_http = function(httpPort = "80", webContext = "./wwwroot") {
 
     http::http_socket()
     |> headers(
+        # add custom http headers
         "X-Powered-By" = "R# http server",
         "Author"       = "xieguigang <xie.guigang@gcmodeller.org>",
         "Github"       = "https://github.com/rsharp-lang/Rserver",

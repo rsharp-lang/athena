@@ -1,8 +1,7 @@
 
 #' Handle http POST request
 #' 
-const handleHttpPost = function(req, response) {
-  const deepseek = get("deepseek", globalenv());
+const handleHttpPost = function(req, response) {  
   const wwwroot = get("wwwroot", globalenv());
   const apps = get("apps", globalenv());
   const webContext = [wwwroot]::wwwroot;
@@ -17,7 +16,7 @@ const handleHttpPost = function(req, response) {
   }
 
   if (apps |> check_url(req)) {
-      apps |> handle(req, response);
+      apps |> router::handle(req, response);
   } else {
       webContext |> exec_r(req, response);
   }
