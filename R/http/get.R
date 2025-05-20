@@ -3,6 +3,7 @@
 #' 
 const handleHttpGet = function(req, response) {
     const wwwroot = get("wwwroot", globalenv());
+    const app = get("app_router", globalenv());
     const webContext = [wwwroot]::wwwroot;
     const verbose = as.logical(getOption("verbose", "FALSE"));
 
@@ -17,17 +18,21 @@ const handleHttpGet = function(req, response) {
         print(getHttpRaw(req));
     }
 
-    if (http_exists(wwwroot, req)) {
-        wwwroot |> host_file(req, response);
+    if (app |> check_url(req)) {
+        app |> handle(req, response);
     } else {
-        const R as string = router(getUrl(req), webContext);
-
-        if (file.exists(R)) {
-            writeLines(source(R), con = response);
+        if (http_exists(wwwroot, req)) {
+            wwwroot |> host_file(req, response);
         } else {
-            response
-            |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
-            ;
+            const R as string = router(getUrl(req), webContext);
+
+            if (file.exists(R)) {
+                writeLines(source(R), con = response);
+            } else {
+                response
+                |> httpError(404, `the required Rscript file is not found on filesystem location: '${ normalizePath(R) }'!`)
+                ;
+            }
         }
     }
 }
