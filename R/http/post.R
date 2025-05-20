@@ -4,6 +4,7 @@
 const handleHttpPost = function(req, response) {
   const deepseek = get("deepseek", globalenv());
   const wwwroot = get("wwwroot", globalenv());
+  const apps = get("apps", globalenv());
   const webContext = [wwwroot]::wwwroot;
   const url = getUrl(req);
   const verbose = as.logical(getOption("verbose", "FALSE"));
@@ -15,12 +16,8 @@ const handleHttpPost = function(req, response) {
     print(getHttpRaw(req));
   }
 
-  if (url$path == "/ollama_talk") {
-    # call ollama chat
-    let msg = req |> getPostData("msg"); 
-    let result = deepseek |> chat(msg);
-
-    http_success(result, s = response);
+  if (apps |> check_url(req)) {
+      apps |> handle(req, response);
   } else {
     const R as string = router(getUrl(req), webContext);
 

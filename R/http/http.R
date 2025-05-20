@@ -1,7 +1,8 @@
 const run_http = function(httpPort = "80", webContext = "./wwwroot") {
-    # config runtime
-    set(globalenv(), "wwwroot") <- http_fsdir(webContext);
+    # config runtime components
+    set(globalenv(),  "wwwroot") <- http_fsdir(webContext);
     set(globalenv(), "deepseek") <- Athena::init_ollama();
+    set(globalenv(),     "apps") <- Rserver::scan_urls();
 
     cat("\n\n");
 

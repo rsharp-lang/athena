@@ -3,7 +3,7 @@
 #' 
 const handleHttpGet = function(req, response) {
     const wwwroot = get("wwwroot", globalenv());
-    const app = get("app_router", globalenv());
+    const apps = get("apps", globalenv());
     const webContext = [wwwroot]::wwwroot;
     const verbose = as.logical(getOption("verbose", "FALSE"));
 
@@ -18,8 +18,8 @@ const handleHttpGet = function(req, response) {
         print(getHttpRaw(req));
     }
 
-    if (app |> check_url(req)) {
-        app |> handle(req, response);
+    if (apps |> check_url(req)) {
+        apps |> handle(req, response);
     } else {
         if (http_exists(wwwroot, req)) {
             wwwroot |> host_file(req, response);
