@@ -15,8 +15,10 @@ const read_text = function(file) {
 #' create file proxy
 #' 
 #' @details send the file to the cdn proxy, this function accept the file path and then generates 
-#'    the associated url on the proxy cdn server. you should generates a html anchor link html 
-#'    element string to make this file download available for user.
+#'    the associated url on the proxy cdn server. for image files(svg/png/bmp/jpg/jpeg/webp/gif) you 
+#'    should create a html img tag for make the image view available to user, for other kind files, 
+#'    you should generates a html anchor link html element string to make this file download 
+#'    available for user.
 #' 
 #' @param file the target file path for send to the file proxy
 #' 
