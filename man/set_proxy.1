@@ -9,11 +9,11 @@ set_proxy \- set_proxy(file)
 .PP
 .SH DETAILS
 .PP
-send the file to the cdn proxy, this function accept the file path and then generates the associated url on the proxy cdn server. you should generates a html anchor link html element string to make this file download available for user.
+send the file to the cdn proxy, this function accept the file path and then generates the associated url on the proxy cdn server. for image files(svg/png/bmp/jpg/jpeg/webp/gif) you should create a html img tag for make the image view available to user, for other kind files, you should generates a html anchor link html element string to make this file download available for user.
 .PP
 .SH FILES
 .PP
-SMRUCC/R#.declare_function.set_proxy at utils.R:line 24
+SMRUCC/R#.declare_function.set_proxy at utils.R:line 26
 .PP
 .SH COPYRIGHT
 Copyright © xieguigang, MIT Licensed 2025
