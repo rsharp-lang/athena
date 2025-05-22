@@ -1,5 +1,18 @@
-#' build the ollama ai tools set from the R# runtime objects
-#' 
+#' @title Build Ollama AI Toolset
+#' @description Scans R environment to dynamically construct and attach AI tools 
+#'   to the Ollama client. Handles both system-defined tools and custom functions
+#'   with special Ollama attributes.
+#' @param deepseek An Ollama client object to attach tools to. If NULL, uses
+#'   current active client (not recommended in most cases).
+#' @details This function performs two main tasks:\cr
+#'   1. Adds a system information tool (`sys_info`) that provides client metadata\cr
+#'   2. Scans environment for functions with [@ollama "tool_name"] attributes and
+#'      converts them into AI-callable tools using their Roxygen documentation.\cr
+#'   Tools are prioritized with system tools first to prevent naming conflicts.
+#' @return Invisibly returns the modified Ollama client with attached tools.
+#' @note Custom functions must have:\cr
+#'   - `@ollama` attribute declaring tool name\cr
+#'   - Proper Roxygen documentation for parameters and description
 const build_ollama_tools = function(deepseek = NULL) {
     let sys_info <- .Internal::description("Athena");
     let current_env <- environment(); 
