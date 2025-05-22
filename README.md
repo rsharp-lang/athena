@@ -1,6 +1,6 @@
 # Athena NeuroCore System
 
-Athena NeuroCore System based on LLMs for run data analysis
+Athena NeuroCore System based on LLMs for run data analysis. view the package [vignettes help documents](/vignettes/index.html)
 
 ## how to develop
 
