@@ -12,14 +12,27 @@ const read_text = function(file) {
     .Internal::readText(file);
 }
 
-#' read image file
+#' create file proxy
 #' 
-#' @details read the image file and returns the base64 encoded data uri string
-#'    for display on the html web ui
+#' @details send the file to the cdn proxy, this function accept the file path and then generates 
+#'    the associated url on the proxy cdn server. you should generates a html anchor link html 
+#'    element string to make this file download available for user.
 #' 
-#' @param file the file path of the target image file for display by this function
+#' @param file the target file path for send to the file proxy
 #' 
-[@ollama "read_image"]
-const read_image = function(file) {
-    .Internal::dataUri(file);
+[@ollama "file_proxy"]
+const set_proxy = function(file) {
+    const tempdir = getOption("proxy_tmp");
+    const key = md5(paste([file, now() |> toString()], sep = "+"));
+    const tempfile = file.path(tempdir, substr(key, 3,5), substr(key, 23,25));
+    const filepath = file.path(tempfile, `${key}.${file.ext(file)}`);
+
+    file.copy(file, filepath);
+
+    {
+        download: {
+            href: `/get/file?key=${key}`,
+            filename: basename(file, withExtensionName = TRUE)
+        }
+    }
 }
