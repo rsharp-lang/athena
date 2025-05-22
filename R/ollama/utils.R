@@ -25,12 +25,51 @@ const set_proxy = function(file) {
     file_proxy(file);
 }
 
-#' get the download link of the local file
+#' Generate a proxied download link for local files
+#'
+#' This function creates a temporary proxy link for accessing local files through 
+#' a web interface. It copies the input file to a temporary directory with an 
+#' MD5-hashed path and returns a structured download link.
+#'
+#' @param file A character string specifying the path to an existing local file.
+#'    The file must exist and be accessible (will trigger error if not found).
+#'
+#' @return A named list containing download metadata with two elements:
+#' \describe{
+#'   \item{href}{Character string containing the URL path for file download,
+#'       formatted as `/get/file?key=<md5_hash>`}
+#'   \item{filename}{Character string preserving the original filename with extension}
+#' }
 #' 
-#' @param file the file path on the local file system
+#' @details 
+#' The function performs three key operations:
+#' \enumerate{
+#'   \item Generates MD5 hash based on file path and current timestamp
+#'   \item Creates nested temporary directory using hash fragments (e.g., /temp/a1b2c/d4e5f)
+#'   \item Copies original file to hashed location while preserving extension
+#' }
 #' 
-#' @return a tuple list object that contains the download link of the input local file
+#' @note 
+#' Requires pre-configured temporary directory via `options(proxy_tmp = "path")`.
+#' The temporary files are not automatically cleaned up; consider implementing
+#' scheduled cleanup for the proxy_tmp directory.
+#'
+#' @examples
+#' \dontrun{
+#' # Set temporary directory first
+#' options(proxy_tmp = "/var/www/tmp")
 #' 
+#' # Generate proxy link for sample file
+#' file_proxy("/data/files/report.pdf")
+#' # Returns: list(
+#' #   href = "/get/file?key=5d41402abc4b2a76b9719d911017c592",
+#' #   filename = "report.pdf"
+#' # )
+#' }
+#' 
+#' @export
+#' @importFrom digest md5
+#' @importFrom tools file_ext
 const file_proxy = function(file) {
     const tempdir = getOption("proxy_tmp");
     const key = md5(paste([file, now() |> toString()], sep = "+"));
