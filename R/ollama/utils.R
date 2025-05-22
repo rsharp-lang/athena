@@ -25,6 +25,12 @@ const set_proxy = function(file) {
     file_proxy(file);
 }
 
+#' get the download link of the local file
+#' 
+#' @param file the file path on the local file system
+#' 
+#' @return a tuple list object that contains the download link of the input local file
+#' 
 const file_proxy = function(file) {
     const tempdir = getOption("proxy_tmp");
     const key = md5(paste([file, now() |> toString()], sep = "+"));
