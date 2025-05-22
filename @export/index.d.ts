@@ -32,6 +32,9 @@ declare namespace Athena {
    function handleHttpPost(req: any, response: any): object;
    /**
    */
+   function image_url(img_file: any): object;
+   /**
+   */
    function init_ollama(): object;
    /**
    */

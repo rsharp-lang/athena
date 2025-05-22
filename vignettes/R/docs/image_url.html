@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>create file proxy</title>
+    <title>creaate image url</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -13,12 +13,12 @@
 
         <table style="width: 100%;">
             <tr>
-                <td>set_proxy {Athena}</td>
+                <td>image_url {Athena}</td>
                 <td style="text-align: right;">R Documentation</td>
             </tr>
         </table>
 
-        <h2>create file proxy</h2>
+        <h2>creaate image url</h2>
 
         <h3>Description</h3>
 
@@ -27,7 +27,7 @@
         <h3>Usage</h3>
 
         <div style="width: 100%; padding-left: 3%; color: black;">
-            <pre><code class='language-R' style="color: black; font-weight:normal;"><strong>set_proxy</strong>(<i>file</i>);</code></pre>
+            <pre><code class='language-R' style="color: black; font-weight:normal;"><strong>image_url</strong>(<i>img.file</i>);</code></pre>
         </div>
 
         <h3>Arguments</h3>
@@ -35,14 +35,14 @@
         <table>
             
 <dt>file</dt>
-<dd><p><p>the target file path for make convert to download url</p></p></dd>
+<dd><p><p>the target image file path ffor make convert to http url</p></p></dd>
 
         </table>
 
 
         <h3 style="display: block;">Details</h3>
 
-        <p>convert the local file path as url link on the cdn proxy server, this function returns file url on the cdn server. you should generates a html anchor link html element to make this file download available to the user.</p>
+        <p>convert the local image file path as the url could be used as the src attribute value of the html img tag. images format supports svg/png/bmp/jpg/jpeg/webp/gif.</p>
 
         <h3 style="display: block">Authors</h3>
 

@@ -14,15 +14,27 @@ const read_text = function(file) {
 
 #' create file proxy
 #' 
-#' @details convert the local file path as url link on the cdn proxy server, this function returns file url on the cdn server. 
-#'    for image files(svg/png/bmp/jpg/jpeg/webp/gif) you should create a html img tag for make the image view available to user, 
-#'    for other kind files, you should generates a html anchor link html element to make this file download 
-#'    available for user.
+#' @details convert the local file path as url link on the cdn proxy server, 
+#'    this function returns file url on the cdn server. you should generates 
+#'    a html anchor link html element to make this file download available 
+#'    to the user.
 #' 
 #' @param file the target file path for make convert to download url
 #' 
 [@ollama "file_proxy"]
 const set_proxy = function(file) {
+    file_proxy(file);
+}
+
+#' creaate image url
+#' 
+#' @details convert the local image file path as the url could be used as the src attribute value of 
+#'    the html img tag. images format supports svg/png/bmp/jpg/jpeg/webp/gif.
+#' 
+#' @param file the target image file path ffor make convert to http url
+#' 
+[@ollama "image_url"]
+const image_url = function(img_file) {
     file_proxy(file);
 }
 
