@@ -23,7 +23,12 @@ const read_text = function(file) {
 #' 
 [@ollama "file_proxy"]
 const set_proxy = function(file) {
-    file_proxy(file);
+    list(
+        download = {
+            href: file_proxy(file),
+            filename: basename(file, withExtensionName = TRUE)
+        }
+    )
 }
 
 #' creaate image url
@@ -31,11 +36,16 @@ const set_proxy = function(file) {
 #' @details convert the local image file path as the url could be used as the src attribute value of 
 #'    the html img tag. images format supports svg/png/bmp/jpg/jpeg/webp/gif.
 #' 
-#' @param file the target image file path ffor make convert to http url
+#' @param img_file the target image file path ffor make convert to http url
 #' 
 [@ollama "image_url"]
 const image_url = function(img_file) {
-    file_proxy(img_file);
+    list(
+        img = {
+            src: file_proxy(img_file),
+            filename: basename(file, withExtensionName = TRUE)
+        }
+    )
 }
 
 #' Generate a proxied download link for local files
@@ -91,10 +101,5 @@ const file_proxy = function(file) {
 
     file.copy(file, filepath);
 
-    {
-        download: {
-            href: `/get/file?key=${key}`,
-            filename: basename(file, withExtensionName = TRUE)
-        }
-    }
+    return(`/get/file?key=${key}`);
 }
