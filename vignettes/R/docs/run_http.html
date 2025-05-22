@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>run_http</title>
+    <title>@title Configure and Start HTTP Server</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -18,11 +18,11 @@
             </tr>
         </table>
 
-        <h2>run_http</h2>
+        <h2>@title Configure and Start HTTP Server</h2>
 
         <h3>Description</h3>
 
-        
+        <p>Initializes HTTP server with specified port and web context directory, registers request handlers for different HTTP methods.</p>
 
         <h3>Usage</h3>
 
@@ -36,12 +36,19 @@
 
         <table>
             
+<dt>httpPort</dt>
+<dd><p><p>(character/numeric) Port to listen on. Default: "80".</p></p></dd>
+
+
+<dt>webContext</dt>
+<dd><p><p>(character) Path to web root directory. Default: "./wwwroot".</p></p></dd>
+
         </table>
 
 
-        <h3 style="display: none;">Details</h3>
+        <h3 style="display: block;">Details</h3>
 
-        
+        <p>1. Sets global configurations:\cr - \code{wwwroot}: File system handler for static content\cr - \code{deepseek}: Initialized Ollama AI context\cr - \code{apps}: URL routing rules from \code{scan_urls()}\cr 2. Attaches custom HTTP headers (X-Powered-By, Author, etc.)\cr 3. Registers handlers for GET/POST/PUT methods\cr 4. PUT method returns a test success message by default</p>
 
         <h3 style="display: block">Authors</h3>
 
@@ -49,7 +56,7 @@
 
         <h3>Value</h3>
 
-        This function has no value returns.
+        <p>Returns the HTTP socket object. Use \code{listen()} to start server.</p>
 
         <h3 style="display: none;">Examples</h3>
 

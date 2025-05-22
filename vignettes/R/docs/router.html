@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Route url as local R script file</title>
+    <title>@title Route URLs to Local Resources</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -18,11 +18,11 @@
             </tr>
         </table>
 
-        <h2>Route url as local R script file</h2>
+        <h2>@title Route URLs to Local Resources</h2>
 
         <h3>Description</h3>
 
-        
+        <p>Handles URL routing for web requests, mapping URLs to local R scripts or static files in the web context directory.</p>
 
         <h3>Usage</h3>
 
@@ -35,14 +35,18 @@
         <table>
             
 <dt>url</dt>
-<dd><p><p>the url object that parsed from the http request.</p></p></dd>
+<dd><p><p>Parsed URL object from incoming request (should contain $path)</p></p></dd>
+
+
+<dt>webContext</dt>
+<dd><p><p>Base directory path for web resources</p></p></dd>
 
         </table>
 
 
-        <h3 style="display: none;">Details</h3>
+        <h3 style="display: block;">Details</h3>
 
-        
+        <p>Routing logic:\cr - Root path (/) maps to index.html\cr - URLs ending with .R get direct script mapping\cr - Other URLs resolve to static files\cr Ensures proper extension handling for R script execution.</p>
 
         <h3 style="display: block">Authors</h3>
 
@@ -50,7 +54,7 @@
 
         <h3>Value</h3>
 
-        This function has no value returns.
+        <p>Returns full filesystem path to either:\cr - Corresponding R script (appends .R if missing)\cr - Static file (defaults to index.html for root path)\cr</p>
 
         <h3 style="display: none;">Examples</h3>
 

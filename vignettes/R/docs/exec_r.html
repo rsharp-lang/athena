@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>exec_r</title>
+    <title>@title Execute Routed R Script</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -18,11 +18,11 @@
             </tr>
         </table>
 
-        <h2>exec_r</h2>
+        <h2>@title Execute Routed R Script</h2>
 
         <h3>Description</h3>
 
-        
+        <p>Executes R scripts identified by the router and returns generated content through HTTP response.</p>
 
         <h3>Usage</h3>
 
@@ -34,12 +34,23 @@
 
         <table>
             
+<dt>webContext</dt>
+<dd><p><p>Base directory containing web resources</p></p></dd>
+
+
+<dt>req</dt>
+<dd><p><p>HTTP request object containing URL information</p></p></dd>
+
+
+<dt>response</dt>
+<dd><p><p>HTTP response object to write output to</p></p></dd>
+
         </table>
 
 
-        <h3 style="display: none;">Details</h3>
+        <h3 style="display: block;">Details</h3>
 
-        
+        <p>Operation flow:\cr 1. Resolve URL to local file path via router()\cr 2. If file exists, execute with source() and stream output\cr 3. Handle missing files with 404 error including normalized path\cr Ensures proper error handling and path disclosure prevention.</p>
 
         <h3 style="display: block">Authors</h3>
 
@@ -47,7 +58,7 @@
 
         <h3>Value</h3>
 
-        This function has no value returns.
+        <p>Writes execution results to response object or returns HTTP error</p>
 
         <h3 style="display: none;">Examples</h3>
 

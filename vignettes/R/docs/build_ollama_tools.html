@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>build the ollama ai tools set from the R# runtime objects</title>
+    <title>@title Build Ollama AI Toolset</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -18,11 +18,11 @@
             </tr>
         </table>
 
-        <h2>build the ollama ai tools set from the R# runtime objects</h2>
+        <h2>@title Build Ollama AI Toolset</h2>
 
         <h3>Description</h3>
 
-        
+        <p>Scans the R environment to dynamically construct and attach AI tools to the Ollama client. Handles both system-defined tools and custom functions with Ollama-specific attributes. System tools take precedence to prevent naming conflicts with user-defined tools.</p>
 
         <h3>Usage</h3>
 
@@ -35,12 +35,15 @@
 
         <table>
             
+<dt>deepseek</dt>
+<dd><p><p>An Ollama client object to attach tools to. When NULL (default), uses the currently active client. Note that relying on implicit client selection is discouraged in production environments.</p></p></dd>
+
         </table>
 
 
-        <h3 style="display: none;">Details</h3>
+        <h3 style="display: block;">Details</h3>
 
-        
+        <p>The toolset construction process includes two phases: \enumerate{ \item System Tool Injection - Adds a mandatory `sys_info` tool containing: \itemize{ \item System name and introduction text \item Developer information \item Programming language details \item GitHub repository URL \item License information } \item Environment Scanning - Detects functions with \code{@ollama} attributes: \itemize{ \item Requires \code{roxygen2}-style documentation for parameters and descriptions \item Extracts argument specifications from \code{@param} tags \item Identifies required parameters through documentation analysis } }</p>
 
         <h3 style="display: block">Authors</h3>
 
@@ -48,7 +51,7 @@
 
         <h3>Value</h3>
 
-        This function has no value returns.
+        <p>Invisibly returns the modified Ollama client object with attached tools.</p>
 
         <h3 style="display: none;">Examples</h3>
 

@@ -1,21 +1,33 @@
-﻿.TH EXEC_R 1 2025-May "" "exec_r"
+﻿.TH EXEC_R 1 2025-May "" "@title Execute Routed R Script"
 .SH NAME
 exec_r \- exec_r(webContext, req, response)
 .SH SYNOPSIS
 \fIexec_r(webContext, req, response)\fR
+.SH DESCRIPTION
+.PP
+Executes R scripts identified by the router and returns generated content through HTTP response.
+.PP
 .SH OPTIONS
 .PP
-\fBwebContext\fB \fR\- . 
+\fBwebContext\fB \fR\- . Base directory containing web resources
 .PP
 .PP
-\fBreq\fB \fR\- . 
+\fBreq\fB \fR\- . HTTP request object containing URL information
 .PP
 .PP
-\fBresponse\fB \fR\- . 
+\fBresponse\fB \fR\- . HTTP response object to write output to
+.PP
+.SH VALUE
+.PP
+Writes execution results to response object or returns HTTP error
+.PP
+.SH DETAILS
+.PP
+Operation flow:\cr 1. Resolve URL to local file path via router()\cr 2. If file exists, execute with source() and stream output\cr 3. Handle missing files with 404 error including normalized path\cr Ensures proper error handling and path disclosure prevention.
 .PP
 .SH FILES
 .PP
-SMRUCC/R#.declare_function.exec_r at rscript.R:line 1
+SMRUCC/R#.declare_function.exec_r at rscript.R:line 17
 .PP
 .SH COPYRIGHT
 Copyright © xieguigang, MIT Licensed 2025

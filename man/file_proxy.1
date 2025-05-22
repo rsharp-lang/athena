@@ -1,15 +1,23 @@
-﻿.TH FILE_PROXY 1 2025-May "" "file_proxy"
+﻿.TH FILE_PROXY 1 2025-May "" "Generate a proxied download link for local files This function creates a temporary proxy link for accessing local files through a web interface. It copies the input file to a temporary directory with an MD5-hashed path and returns a structured download link."
 .SH NAME
 file_proxy \- file_proxy(file)
 .SH SYNOPSIS
 \fIfile_proxy(file)\fR
 .SH OPTIONS
 .PP
-\fBfile\fB \fR\- . 
+\fBfile\fB \fR\- . A character string specifying the path to an existing local file. The file must exist and be accessible (will trigger error if not found).
+.PP
+.SH VALUE
+.PP
+A named list containing download metadata with two elements: \describe{ \item{href}{Character string containing the URL path for file download, formatted as `/get/file?key=<md5_hash>`} \item{filename}{Character string preserving the original filename with extension} }
+.PP
+.SH DETAILS
+.PP
+The function performs three key operations: \enumerate{ \item Generates MD5 hash based on file path and current timestamp \item Creates nested temporary directory using hash fragments (e.g., /temp/a1b2c/d4e5f) \item Copies original file to hashed location while preserving extension }
 .PP
 .SH FILES
 .PP
-SMRUCC/R#.declare_function.file_proxy at utils.R:line 28
+SMRUCC/R#.declare_function.file_proxy at utils.R:line 73
 .PP
 .SH COPYRIGHT
 Copyright © xieguigang, MIT Licensed 2025

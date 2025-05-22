@@ -1,15 +1,23 @@
-﻿.TH DOWNLOAD_FILE_PROXY 1 2025-May "" "download the given file by key query"
+﻿.TH DOWNLOAD_FILE_PROXY 1 2025-May "" "Download file by hash key"
 .SH NAME
 download_file_proxy \- download_file_proxy(key)
 .SH SYNOPSIS
 \fIdownload_file_proxy(key)\fR
+.SH DESCRIPTION
+.PP
+Retrieves and downloads a file from proxy storage based on hash key lookup. This function handles both file retrieval and HTTP response generation.
+.PP
 .SH OPTIONS
 .PP
-\fBkey\fB \fR\- . the hash key of the associated file for make download
+\fBkey\fB \fR\- . A 32-character hash string associated with the target file. Hash format should follow "XX...XX" pattern (e.g. "a1b2c3...z9").
+.PP
+.SH VALUE
+.PP
+* When file exists: Returns file metadata through `file.info()` * When file not found: Returns HTTP 404 response list containing: - code: HTTP status code - info: Error message string
 .PP
 .SH FILES
 .PP
-SMRUCC/R#.declare_function.download_file_proxy at proxy.R:line 7
+SMRUCC/R#.declare_function.download_file_proxy at proxy.R:line 36
 .PP
 .SH COPYRIGHT
 Copyright © xieguigang, MIT Licensed 2025

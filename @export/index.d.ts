@@ -38,6 +38,9 @@ declare namespace Athena {
    function ollama_talk(msg: any): object;
    /**
    */
+   function proxy_realpath(key: any): object;
+   /**
+   */
    function read_text(file: any): object;
    /**
    */

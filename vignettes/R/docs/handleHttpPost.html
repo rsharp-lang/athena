@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Handle http POST request</title>
+    <title>@title Handle HTTP POST Request</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -18,11 +18,11 @@
             </tr>
         </table>
 
-        <h2>Handle http POST request</h2>
+        <h2>@title Handle HTTP POST Request</h2>
 
         <h3>Description</h3>
 
-        
+        <p>Processes incoming HTTP POST requests, routes to appropriate handler or executes R context script.</p>
 
         <h3>Usage</h3>
 
@@ -34,12 +34,19 @@
 
         <table>
             
+<dt>req</dt>
+<dd><p><p>An HTTP request object containing client data and headers.</p></p></dd>
+
+
+<dt>response</dt>
+<dd><p><p>An HTTP response object for building server output.</p></p></dd>
+
         </table>
 
 
-        <h3 style="display: none;">Details</h3>
+        <h3 style="display: block;">Details</h3>
 
-        
+        <p>1. Retrieves global configurations for web root directory (`wwwroot`) and registered apps (`apps`).\cr 2. When `verbose=TRUE`, prints debug information including raw HTTP headers.\cr 3. Routes request to app-specific handler if URL matches registered apps via \code{check<em>url()}.\cr 4. Falls back to executing R context script in `wwwroot` via \code{exec</em>r()} if no app matches.</p>
 
         <h3 style="display: block">Authors</h3>
 
@@ -47,7 +54,7 @@
 
         <h3>Value</h3>
 
-        This function has no value returns.
+        <p>Modifies `response` object in-place. No explicit return value.</p>
 
         <h3 style="display: none;">Examples</h3>
 

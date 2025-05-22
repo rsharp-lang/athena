@@ -1,4 +1,4 @@
-﻿.TH RUN_HTTP 1 2025-May "" "run_http"
+﻿.TH RUN_HTTP 1 2025-May "" "@title Configure and Start HTTP Server"
 .SH NAME
 run_http \- run_http(
     <i>httpPort</i> = <span style='color: #500000;'><strong>'80'</strong></span>,
@@ -7,16 +7,28 @@ run_http \- run_http(
 \fIrun_http(
     <i>httpPort</i> = <span style='color: #500000;'><strong>'80'</strong></span>,
     <i>webContext</i> = <span style='color: brown;'><strong>'./wwwroot'</strong></span>)\fR
+.SH DESCRIPTION
+.PP
+Initializes HTTP server with specified port and web context directory, registers request handlers for different HTTP methods.
+.PP
 .SH OPTIONS
 .PP
-\fBhttpPort\fB \fR\- '80'. 
+\fBhttpPort\fB \fR\- '80'. (character/numeric) Port to listen on. Default: "80".
 .PP
 .PP
-\fBwebContext\fB \fR\- './wwwroot'. 
+\fBwebContext\fB \fR\- './wwwroot'. (character) Path to web root directory. Default: "./wwwroot".
+.PP
+.SH VALUE
+.PP
+Returns the HTTP socket object. Use \code{listen()} to start server.
+.PP
+.SH DETAILS
+.PP
+1. Sets global configurations:\cr - \code{wwwroot}: File system handler for static content\cr - \code{deepseek}: Initialized Ollama AI context\cr - \code{apps}: URL routing rules from \code{scan_urls()}\cr 2. Attaches custom HTTP headers (X-Powered-By, Author, etc.)\cr 3. Registers handlers for GET/POST/PUT methods\cr 4. PUT method returns a test success message by default
 .PP
 .SH FILES
 .PP
-SMRUCC/R#.declare_function.run_http at http.R:line 1
+SMRUCC/R#.declare_function.run_http at http.R:line 22
 .PP
 .SH COPYRIGHT
 Copyright © xieguigang, MIT Licensed 2025

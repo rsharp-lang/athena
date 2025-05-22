@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>file_proxy</title>
+    <title>Generate a proxied download link for local files This function creates a temporary proxy link for accessing local files through a web interface. It copies the input file to a temporary directory with an MD5-hashed path and returns a structured download link.</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -18,7 +18,7 @@
             </tr>
         </table>
 
-        <h2>file_proxy</h2>
+        <h2>Generate a proxied download link for local files This function creates a temporary proxy link for accessing local files through a web interface. It copies the input file to a temporary directory with an MD5-hashed path and returns a structured download link.</h2>
 
         <h3>Description</h3>
 
@@ -34,12 +34,15 @@
 
         <table>
             
+<dt>file</dt>
+<dd><p><p>A character string specifying the path to an existing local file. The file must exist and be accessible (will trigger error if not found).</p></p></dd>
+
         </table>
 
 
-        <h3 style="display: none;">Details</h3>
+        <h3 style="display: block;">Details</h3>
 
-        
+        <p>The function performs three key operations: \enumerate{ \item Generates MD5 hash based on file path and current timestamp \item Creates nested temporary directory using hash fragments (e.g., /temp/a1b2c/d4e5f) \item Copies original file to hashed location while preserving extension }</p>
 
         <h3 style="display: block">Authors</h3>
 
@@ -47,7 +50,7 @@
 
         <h3>Value</h3>
 
-        This function has no value returns.
+        <p>A named list containing download metadata with two elements: \describe{ \item{href}{Character string containing the URL path for file download, formatted as `/get/file?key=<md5_hash>`} \item{filename}{Character string preserving the original filename with extension} }</p>
 
         <h3 style="display: none;">Examples</h3>
 

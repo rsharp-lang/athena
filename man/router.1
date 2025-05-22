@@ -1,18 +1,30 @@
-﻿.TH ROUTER 1 2025-May "" "Route url as local R script file"
+﻿.TH ROUTER 1 2025-May "" "@title Route URLs to Local Resources"
 .SH NAME
 router \- router(url, webContext)
 .SH SYNOPSIS
 \fIrouter(url, webContext)\fR
+.SH DESCRIPTION
+.PP
+Handles URL routing for web requests, mapping URLs to local R scripts or static files in the web context directory.
+.PP
 .SH OPTIONS
 .PP
-\fBurl\fB \fR\- . the url object that parsed from the http request.
+\fBurl\fB \fR\- . Parsed URL object from incoming request (should contain $path)
 .PP
 .PP
-\fBwebContext\fB \fR\- . 
+\fBwebContext\fB \fR\- . Base directory path for web resources
+.PP
+.SH VALUE
+.PP
+Returns full filesystem path to either:\cr - Corresponding R script (appends .R if missing)\cr - Static file (defaults to index.html for root path)\cr
+.PP
+.SH DETAILS
+.PP
+Routing logic:\cr - Root path (/) maps to index.html\cr - URLs ending with .R get direct script mapping\cr - Other URLs resolve to static files\cr Ensures proper extension handling for R script execution.
 .PP
 .SH FILES
 .PP
-SMRUCC/R#.declare_function.router at file_url.R:line 7
+SMRUCC/R#.declare_function.router at file_url.R:line 14
 .PP
 .SH COPYRIGHT
 Copyright © xieguigang, MIT Licensed 2025

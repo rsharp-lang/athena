@@ -1,11 +1,23 @@
-﻿.TH INIT_OLLAMA 1 2025-May "" "initialize of the ollama ai client"
+﻿.TH INIT_OLLAMA 1 2025-May "" "@title Initialize Ollama AI Client"
 .SH NAME
 init_ollama \- init_ollama()
 .SH SYNOPSIS
 \fIinit_ollama()\fR
+.SH DESCRIPTION
+.PP
+Initializes and configures the Ollama AI client using global options. This function sets up the model and server connection, builds required tools, and returns the initialized client object for subsequent AI operations.
+.PP
+.SH VALUE
+.PP
+Returns an initialized Ollama client object that's ready for AI operations. The returned object contains configured tools and settings.
+.PP
+.SH DETAILS
+.PP
+Uses `ollama_model` and `ollama_server` options from global environment to configure the client. Automatically attaches essential tools via `build_ollama_tools()` during initialization.
+.PP
 .SH FILES
 .PP
-SMRUCC/R#.declare_function.init_ollama at ollama.R:line 7
+SMRUCC/R#.declare_function.init_ollama at ollama.R:line 19
 .PP
 .SH COPYRIGHT
 Copyright © xieguigang, MIT Licensed 2025
