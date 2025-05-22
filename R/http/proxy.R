@@ -5,13 +5,7 @@
 [@url "/get/file"]
 [@http "get"]
 const download_file_proxy = function(key) {
-    const tempdir  = getOption("proxy_tmp");
-    const tempfile = file.path(tempdir, substr(key, 3,5), substr(key, 23,25));
-    const files = list.files(tempfile, pattern = "*.*");
-    const hashfile = files 
-        |> which(f -> basename(f) == key) 
-        |> .Internal::first()
-        ;
+    const hashfile = proxy_realpath(key);
 
     if (nchar(hashfile) == 0) {
         list(code = 404, info = `no file could be found by the hash key ${key}.`);
@@ -19,4 +13,15 @@ const download_file_proxy = function(key) {
         # push file download
         file.info(hashfile, clr_obj = TRUE);
     }
+}
+
+const proxy_realpath = function(key) {
+    const tempdir  = getOption("proxy_tmp");
+    const tempfile = file.path(tempdir, substr(key, 3,5), substr(key, 23,25));
+    const files = list.files(tempfile, pattern = "*.*");
+    
+    files 
+    |> which(f -> basename(f) == key) 
+    |> .Internal::first()
+    ;
 }
