@@ -17,7 +17,13 @@ declare namespace Athena {
    function build_ollama_tools(deepseek?: any): object;
    /**
    */
+   function download_file_proxy(key: any): object;
+   /**
+   */
    function exec_r(webContext: any, req: any, response: any): object;
+   /**
+   */
+   function file_proxy(file: any): object;
    /**
    */
    function handleHttpGet(req: any, response: any): object;
@@ -32,9 +38,6 @@ declare namespace Athena {
    function ollama_talk(msg: any): object;
    /**
    */
-   function read_image(file: any): object;
-   /**
-   */
    function read_text(file: any): object;
    /**
    */
@@ -44,4 +47,7 @@ declare namespace Athena {
      * @param webContext default value Is ``./wwwroot``.
    */
    function run_http(httpPort?: any, webContext?: any): object;
+   /**
+   */
+   function set_proxy(file: any): object;
 }

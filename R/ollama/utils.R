@@ -22,6 +22,10 @@ const read_text = function(file) {
 #' 
 [@ollama "file_proxy"]
 const set_proxy = function(file) {
+    file_proxy(file);
+}
+
+const file_proxy = function(file) {
     const tempdir = getOption("proxy_tmp");
     const key = md5(paste([file, now() |> toString()], sep = "+"));
     const tempfile = file.path(tempdir, substr(key, 3,5), substr(key, 23,25));
