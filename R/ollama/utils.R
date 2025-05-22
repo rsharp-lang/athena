@@ -43,7 +43,7 @@ const image_url = function(img_file) {
     list(
         img = {
             src: file_proxy(img_file),
-            filename: basename(file, withExtensionName = TRUE)
+            filename: basename(img_file, withExtensionName = TRUE)
         }
     )
 }
