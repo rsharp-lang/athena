@@ -11,3 +11,15 @@
 const read_text = function(file) {
     .Internal::readText(file);
 }
+
+#' read image file
+#' 
+#' @details read the image file and returns the base64 encoded data uri string
+#'    for display on the html web ui
+#' 
+#' @param file the file path of the target image file for display by this function
+#' 
+[@ollama "read_image"]
+const read_image = function(file) {
+    .Internal::dataUri(file);
+}

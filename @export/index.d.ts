@@ -32,6 +32,9 @@ declare namespace Athena {
    function ollama_talk(msg: any): object;
    /**
    */
+   function read_image(file: any): object;
+   /**
+   */
    function read_text(file: any): object;
    /**
    */
