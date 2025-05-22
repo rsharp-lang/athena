@@ -35,7 +35,7 @@ const set_proxy = function(file) {
 #' 
 [@ollama "image_url"]
 const image_url = function(img_file) {
-    file_proxy(file);
+    file_proxy(img_file);
 }
 
 #' Generate a proxied download link for local files
