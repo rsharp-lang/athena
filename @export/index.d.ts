@@ -26,6 +26,9 @@ declare namespace Athena {
    function file_proxy(file: any): object;
    /**
    */
+   function file_proxy_key(file: any): object;
+   /**
+   */
    function handleHttpGet(req: any, response: any): object;
    /**
    */
