@@ -1,18 +1,62 @@
 #' @title Build Ollama AI Toolset
-#' @description Scans R environment to dynamically construct and attach AI tools 
+#' @description Scans the R environment to dynamically construct and attach AI tools 
 #'   to the Ollama client. Handles both system-defined tools and custom functions
-#'   with special Ollama attributes.
-#' @param deepseek An Ollama client object to attach tools to. If NULL, uses
-#'   current active client (not recommended in most cases).
-#' @details This function performs two main tasks:\cr
-#'   1. Adds a system information tool (`sys_info`) that provides client metadata\cr
-#'   2. Scans environment for functions with [@ollama "tool_name"] attributes and
-#'      converts them into AI-callable tools using their Roxygen documentation.\cr
-#'   Tools are prioritized with system tools first to prevent naming conflicts.
-#' @return Invisibly returns the modified Ollama client with attached tools.
-#' @note Custom functions must have:\cr
-#'   - `@ollama` attribute declaring tool name\cr
-#'   - Proper Roxygen documentation for parameters and description
+#'   with Ollama-specific attributes. System tools take precedence to prevent 
+#'   naming conflicts with user-defined tools.
+#' 
+#' @param deepseek An Ollama client object to attach tools to. When NULL (default),
+#'   uses the currently active client. Note that relying on implicit client selection
+#'   is discouraged in production environments.
+#' 
+#' @details The toolset construction process includes two phases:
+#' \enumerate{
+#'   \item System Tool Injection - Adds a mandatory `sys_info` tool containing:
+#'   \itemize{
+#'     \item System name and introduction text
+#'     \item Developer information
+#'     \item Programming language details
+#'     \item GitHub repository URL
+#'     \item License information
+#'   }
+#'   \item Environment Scanning - Detects functions with \code{@ollama} attributes:
+#'   \itemize{
+#'     \item Requires \code{roxygen2}-style documentation for parameters and descriptions
+#'     \item Extracts argument specifications from \code{@param} tags
+#'     \item Identifies required parameters through documentation analysis
+#'   }
+#' }
+#' 
+#' @return Invisibly returns the modified Ollama client object with attached tools.
+#' 
+#' @note For custom tool integration, functions must:
+#' \itemize{
+#'   \item Contain an \code{@ollama "tool_name"} attribute in their documentation
+#'   \item Maintain standard roxygen documentation blocks with:
+#'     \itemize{
+#'       \item Clear \code{@description} and/or \code{@details}
+#'       \item Explicit \code{@param} definitions for all arguments
+#'     }
+#' }
+#' 
+#' @section Implementation Notes:
+#' The function leverages R#-specific features:
+#' \itemize{
+#'   \item Uses \code{.Internal::attributes()} for metadata extraction
+#'   \item Employs R# lambda syntax for environment scanning
+#'   \item Requires R# 4.0+ runtime environment
+#' }
+#' 
+#' @seealso \code{\link{ollama::add_tool}} for the underlying tool attachment mechanism
+#' 
+#' @examples
+#' \dontrun{
+#' # Initialize client and build toolset
+#' client <- ollama::new_client()
+#' build_ollama_tools(client)
+#' 
+#' # Check attached tools
+#' ollama::list_tools(client)
+#' }
 const build_ollama_tools = function(deepseek = NULL) {
     let sys_info <- .Internal::description("Athena");
     let current_env <- environment(); 
