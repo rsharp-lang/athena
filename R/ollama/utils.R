@@ -93,7 +93,11 @@ const image_url = function(img_file) {
 #' @export
 #' @importFrom digest md5
 #' @importFrom tools file_ext
-const file_proxy = function(file) {
+const file_proxy = function(file) {   
+    `/get/file?key=${file_proxy_key(file)}`;
+}
+
+const file_proxy_key = function(file) {
     const tempdir = getOption("proxy_tmp");
     const key = md5(paste([file, now() |> toString()], sep = "+"));
     const tempfile = file.path(tempdir, substr(key, 3,5), substr(key, 23,25));
@@ -101,5 +105,5 @@ const file_proxy = function(file) {
 
     file.copy(file, filepath);
 
-    return(`/get/file?key=${key}`);
+    return(key);
 }
