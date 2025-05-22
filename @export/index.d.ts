@@ -6,6 +6,9 @@ declare namespace Athena {
    module _ {
       /**
       */
+      function athena_ui(): object;
+      /**
+      */
       function onLoad(): object;
    }
    /**

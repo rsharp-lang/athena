@@ -1,6 +1,6 @@
 const run_http = function(httpPort = "80", webContext = "./wwwroot") {
     # config runtime components
-    set(globalenv(),  "wwwroot") <- http_fsdir(webContext);
+    set(globalenv(),  "wwwroot") <- http_fsdir(webContext, .athena_ui());
     set(globalenv(), "deepseek") <- Athena::init_ollama();
     set(globalenv(),     "apps") <- Rserver::scan_urls();
 
@@ -21,4 +21,6 @@ const run_http = function(httpPort = "80", webContext = "./wwwroot") {
     ;
 }
 
-
+const .athena_ui = function() {
+    dirname(system.file("web/index.html", package = "Athena"));
+}
