@@ -15,6 +15,12 @@ const download_file_proxy = function(key) {
     }
 }
 
+#' get the realpath of the local temp file
+#' 
+#' @param key a hash key that associated with a specific local temp file
+#' 
+#' @return local file path
+#' 
 const proxy_realpath = function(key) {
     const tempdir  = getOption("proxy_tmp");
     const tempfile = file.path(tempdir, substr(key, 3,5), substr(key, 23,25));
