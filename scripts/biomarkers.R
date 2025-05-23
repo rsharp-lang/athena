@@ -4,15 +4,15 @@
 # ----------------------------
 # 1. 载入必要包
 # ----------------------------
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(
-  glmnet,          # LASSO回归
-  randomForest,    # 随机森林
-  e1071,          # SVM基础包
-  caret,          # 机器学习工具集
-  pROC,           # ROC分析
-  tidyverse,      # 数据处理
-  doParallel      # 并行计算加速
+if (!require("pacman"))
+  install.packages("pacman")
+pacman::p_load(glmnet, # LASSO回归
+               randomForest, # 随机森林
+               e1071, # SVM基础包
+               caret, # 机器学习工具集
+               pROC, # ROC分析
+               tidyverse, # 数据处理
+               doParallel      # 并行计算加速
 )
 
 # ----------------------------
@@ -22,10 +22,10 @@ preprocess_data <- function(data_matrix, label_col = "condition") {
   # 分离特征矩阵和标签
   features <- as.matrix(data_matrix[, !names(data_matrix) %in% label_col])
   labels <- data_matrix[[label_col]]
-  
+
   # 标准化处理（Z-score）
   scaled_features <- scale(features)
-  
+
   # 创建数据框
   return(list(
     features = scaled_features,
@@ -43,18 +43,23 @@ run_lasso <- function(X, y, nfolds = 10) {
     x = X,
     y = y,
     family = "binomial",
-    alpha = 1,          # L1正则化
+    alpha = 1,
+    # L1正则化
     nfolds = nfolds,
     parallel = TRUE
   )
-  
+
   # 获取最优lambda
   best_lambda <- cv_fit$lambda.min
-  
+
   # 提取非零系数
-  final_model <- glmnet(X, y, family = "binomial", alpha = 1, lambda = best_lambda)
+  final_model <- glmnet(X,
+                        y,
+                        family = "binomial",
+                        alpha = 1,
+                        lambda = best_lambda)
   coef <- coef(final_model)
-  
+
   # 提取显著特征
   selected_features <- rownames(coef)[which(coef != 0)][-1]  # 排除截距项
   return(selected_features)
@@ -72,14 +77,11 @@ run_random_forest <- function(X, y, ntree = 500) {
     importance = TRUE,
     keep.forest = TRUE
   )
-  
+
   # 获取特征重要性
   importance <- importance(rf_model, type = 2)  # 均方误差减少
-  importance_df <- data.frame(
-    feature = rownames(importance),
-    importance = importance[, "MeanDecreaseMSE"]
-  )
-  
+  importance_df <- data.frame(feature = rownames(importance), importance = importance[, "MeanDecreaseMSE"])
+
   # 按重要性排序
   importance_df <- importance_df[order(-importance_df$importance), ]
   return(importance_df)
@@ -99,17 +101,18 @@ run_svm_rfe <- function(X, y, ncores = 4) {
     allowParallel = TRUE,
     verbose = FALSE
   )
-  
+
   # 执行RFE
   rfe_results <- rfe(
     X,
     y,
-    sizes = c(1:ncol(X)),  # 测试所有特征数
+    sizes = c(1:ncol(X)),
+    # 测试所有特征数
     rfeControl = ctrl,
     method = "svmRadial",
     tuneLength = 3
   )
-  
+
   # 获取最优特征
   optimal_features <- predictors(rfe_results)
   return(optimal_features)
@@ -146,42 +149,40 @@ run_svm_rfe <- function(X, y, ncores = 4) {
 run_analysis <- function(processed_data, comparison_list) {
   # 创建并行计算环境
   registerDoParallel(detectCores() - 1)
-  
+
   results_list <- list()
-  
+
   for (comparison_name in names(comparison_list)) {
     # 提取比较组信息
     comp <- comparison_list[[comparison_name]]
     healthy <- comp$healthy
     disease <- comp$disease
-    
+
     # 创建二分类标签
     labels <- ifelse(
       processed_data$labels %in% c(healthy, disease),
       ifelse(processed_data$labels == healthy, 0, 1),
       NA
     )
-    
+
     # 移除无效样本
     valid_idx <- !is.na(labels)
     X <- processed_data$features[valid_idx, ]
     y <- labels[valid_idx]
-    
+
     # LASSO筛选
     lasso_features <- run_lasso(X, y)
-    
+
     # 随机森林筛选
     rf_importance <- run_random_forest(X, y)
-    
+
     # SVM-RFE筛选
     svm_features <- run_svm_rfe(X, y)
-    
+
     # 整合结果
-    final_features <- intersect(
-      intersect(lasso_features, rf_importance$feature),
-      svm_features
-    )
-    
+    final_features <- intersect(intersect(lasso_features, rf_importance$feature),
+                                svm_features)
+
     # 保存结果
     results_list[[comparison_name]] <- list(
       comparison = comparison_name,
@@ -190,11 +191,17 @@ run_analysis <- function(processed_data, comparison_list) {
       svm_rfe = svm_features,
       final_biomarkers = final_features
     )
-    
+
     # 打印进度
-    cat(paste("\n", comparison_name, "分析完成，共筛选出", length(final_features), "个标志物\n"))
+    cat(paste(
+      "\n",
+      comparison_name,
+      "分析完成，共筛选出",
+      length(final_features),
+      "个标志物\n"
+    ))
   }
-  
+
   return(results_list)
 }
 
@@ -204,7 +211,7 @@ run_analysis <- function(processed_data, comparison_list) {
 visualize_results <- function(results) {
   # 合并所有结果
   all_features <- data.frame()
-  
+
   for (res in results) {
     # 随机森林重要性可视化
     if (!is.null(res$random_forest)) {
@@ -212,15 +219,20 @@ visualize_results <- function(results) {
       ggplot(top_features, aes(x = reorder(feature, importance), y = importance)) +
         geom_bar(stat = "identity", fill = "steelblue") +
         coord_flip() +
-        labs(title = paste("Top 20 Features for", res$comparison),
-             x = "Feature", y = "Importance") +
+        labs(
+          title = paste("Top 20 Features for", res$comparison),
+          x = "Feature",
+          y = "Importance"
+        ) +
         theme_minimal()
     }
-    
+
     # 保存标志物列表
-    write.csv(data.frame(Biomarkers = res$final_biomarkers),
-             paste0(res$comparison, "_biomarkers.csv"),
-             row.names = FALSE)
+    write.csv(
+      data.frame(Biomarkers = res$final_biomarkers),
+      paste0(res$comparison, "_biomarkers.csv"),
+      row.names = FALSE
+    )
   }
 }
 
@@ -229,10 +241,8 @@ visualize_results <- function(results) {
 # ----------------------------
 # 示例数据模拟（替换为实际数据）
 set.seed(123)
-simulated_data <- data.frame(
-  condition = rep(c("Healthy", "Disease1", "Disease2"), each = 50),
-  matrix(rnorm(100*50), nrow = 100, ncol = 50)
-)
+simulated_data <- data.frame(condition = rep(c("Healthy", "Disease1", "Disease2"), each = 50), matrix(rnorm(100 *
+                                                                                                              50), nrow = 100, ncol = 50))
 
 # 预处理
 processed_data <- preprocess_data(simulated_data)
@@ -264,14 +274,15 @@ visualize_results(analysis_results)
 # )
 # print(cv_results)
 
-   # 差异表达分析
-   library(DESeq2)
-   dds <- DESeqDataSetFromMatrix(countData = counts, colData = metadata, design = ~ condition)
-   dds <- DESeq(dds)
-   res <- results(dds)
-   
-      # 列线图构建
-   library( rms )
-   fit <- lrm(outcome ~ Biomarker1 + Biomarker2, data = clinical_data)
-   nom <- nomogram(fit, fun=plogis)
-   
+# 差异表达分析
+library(DESeq2)
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = metadata,
+                              design = ~ condition)
+dds <- DESeq(dds)
+res <- results(dds)
+
+# 列线图构建
+library(rms)
+fit <- lrm(outcome ~ Biomarker1 + Biomarker2, data = clinical_data)
+nom <- nomogram(fit, fun = plogis)
