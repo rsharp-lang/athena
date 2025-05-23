@@ -11,6 +11,13 @@ library(caret)
 library(pheatmap)
 library(ggcorrplot)
 library(dplyr)
+library(tidyverse)
+library(randomForest)
+library(xgboost)
+library(SHAPforxgboost)
+library(pROC)
+library(caret)
+library(ggthemes)
 
 # 1. 数据预处理函数
 preprocess_data <- function(data, remove_na = TRUE, normalize = TRUE) {
@@ -225,6 +232,105 @@ visualize_results <- function(results, X, y) {
   # plot_decision_curve(dca_data, curve.names = "Our Model")
 }
 
+# 文献2
+# 3. 模型训练模块
+train_models <- function(data, features, class_col = "class") {
+  # 分层抽样
+  set.seed(123)
+  split_idx <- createDataPartition(data$class, p = 0.7, list = FALSE)
+
+  # 训练XGBoost
+  xgb_model <- xgboost(
+    data = as.matrix(data[split_idx, features]),
+    label = as.numeric(data$class[split_idx]) - 1,
+    nrounds = 100,
+    objective = "binary:logistic",
+    eval_metric = "logloss"
+  )
+
+  # 训练随机森林
+  rf_model <- randomForest(
+    x = data[split_idx, features],
+    y = as.factor(data$class[split_idx]),
+    ntree = 500,
+    importance = TRUE
+  )
+
+  return(list(
+    xgb = xgb_model,
+    rf = rf_model,
+    train_idx = split_idx,
+    test_idx = -split_idx
+  ))
+}
+
+# 文献2
+# 4. 特征重要性分析
+compute_importance <- function(models, test_data, features) {
+  importance_list <- list()
+
+  # XGBoost SHAP值计算
+  shap_values <- SHAPforxgboost::shap.values(models$xgb, as.matrix(test_data[, features]))
+  importance_list$shap <- shap_values %>%
+    bind_rows() %>%
+    group_by(feature) %>%
+    summarise(mean_abs_shap = mean(abs(value))) %>%
+    arrange(desc(mean_abs_shap))
+
+  # 随机森林重要性
+  importance_list$rf <- varImp(models$rf) %>%
+    data.frame() %>%
+    mutate(feature = rownames(.)) %>%
+    arrange(desc(Overall))
+
+  return(importance_list)
+}
+
+# 文献2
+# 5. 性能评估模块
+evaluate_performance <- function(models, data, features, class_col = "class") {
+  # 预测结果
+  predictions <- list()
+  predictions$xgb <- predict(models$xgb, as.matrix(data[, features]))
+  predictions$rf <- predict(models$rf, newdata = data[, features], type = "prob")[, 2]
+
+  # 计算性能指标
+  roc_results <- lapply(predictions, function(pred) {
+    roc_obj <- roc(data[[class_col]], pred)
+    data.frame(
+      AUC = auc(roc_obj),
+      Accuracy = mean(data[[class_col]] == factor(ifelse(pred > 0.5, 2, 1))),
+      Sensitivity = sensitivity(roc_obj, specificities = 0.95),
+      Specificity = specificity(roc_obj, sensitivities = 0.95)
+    )
+  })
+
+  return(bind_rows(roc_results, .id = "Model"))
+}
+
+# 文献2
+# 6. 可视化模块
+visualize_results2 <- function(importance_list, performance, output_path) {
+  # 特征重要性热图
+  ggplot(importance_list$shap, aes(x = reorder(feature, mean_abs_shap), y = mean_abs_shap)) +
+    geom_col(fill = "#2c7bb6") +
+    coord_flip() +
+    labs(title = "SHAP Feature Importance", x = "Feature", y = "Mean Absolute SHAP") +
+    theme_minimal(base_size = 12) +
+    ggsave(file.path(output_path, "shap_importance.png"), width = 12, height = 8)
+
+  # 模型性能对比
+  performance %>%
+    pivot_longer(-Model, names_to = "Metric", values_to = "Value") %>%
+    ggplot(aes(x = Model, y = Value, fill = Model)) +
+    geom_col(position = "dodge") +
+    facet_wrap(~Metric, scales = "free") +
+    labs(title = "Model Performance Comparison") +
+    theme_minimal() +
+    ggsave(file.path(output_path, "model_comparison.png"), width = 12, height= 8)
+}
+
+
 # 主执行流程
 main <- function(file_path) {
   # 1. 加载数据
@@ -257,30 +363,3 @@ main <- function(file_path) {
   return(ensemble_result)
 }
 
-# 运行示例
-# result <- main("your_data.csv")
-# 添加多组学验证模块
-multiomics_validation <- function(selected_features, clinical_data, omics_data) {
-  # 外周血验证
-  pbmc_validation <- wilcox.test(clinical_data$pbmc_count ~ clinical_data$class)
-
-  # 免疫组化验证
-  ica_validation <- glm(ica_expression ~ class, data = omics_data)
-
-  return(list(
-    pbmc_pvalue = pbmc_validation$p.value,
-    ica_coefficient = coef(ica_validation)[2]
-  ))
-}
-
-# 添加临床决策曲线分析
-clinical_dca <- function(probabilities, labels) {
-  library(DCA);
-
-  dca_result <- DCA(data.frame(prob = probabilities, outcome = labels),
-                    outcome.name = "outcome",
-                    treat.name = "Treatment",
-                    threshold.param = seq(0, 1, 0.01))
-
-  plot(dca_result)
-}

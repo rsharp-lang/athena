@@ -152,7 +152,7 @@ visualize_results <- function(importance_list, performance, output_path) {
     facet_wrap(~Metric, scales = "free") +
     labs(title = "Model Performance Comparison") +
     theme_minimal() +
-    ggsave(file.path(output_path, "model_comparison.png"), width = 12, height 8)
+    ggsave(file.path(output_path, "model_comparison.png"), width = 12, height= 8)
 }
 
 # 7. 主执行函数
