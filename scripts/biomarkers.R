@@ -174,7 +174,7 @@ ensemble_model <- function(X, y, selected_features) {
 }
 
 # 6. 可视化模块
-visualize_results <- function(results, X, y) {
+visualize_results <- function(results, X, y,top_features) {
   nomogram_model <- results$nomogram;
   auc <- results$auc;
   coefficients <- results$coefficients;
@@ -213,25 +213,26 @@ visualize_results <- function(results, X, y) {
   print(p);
   dev.off();
 
-  #library(fastshap)
- # library(shapviz)
+  library(fastshap)
+  library(shapviz)
 
   # 若需输出类别预测（0/1）
-#  pred_wrapper_class <- function(model, newdata) {
-  #  as.numeric(predict(model, newdata = newdata, type = "response") > 0.5)
- # }
-#  shap_values <- explain(nomogram_model, X = as.data.frame( X[, selected_features]),
-     #                    pred_wrapper =pred_wrapper_class,  # 必须指定
-    #                     nsim = 100,  # 蒙特卡洛模拟次数，建议 >= 100
-   #                      shap_only = FALSE
-  #                      );
- # shap_viz <- shapviz(shap_values)
+  pred_wrapper_class <- function(model, newdata) {
+    as.numeric(predict(model, newdata = newdata, type = "response") > 0.5)
+  }
+  shap_values <- explain(nomogram_model, X = as.data.frame( X[, top_features]),
+                         pred_wrapper =pred_wrapper_class,  # 必须指定
+                         nsim = 100,  # 蒙特卡洛模拟次数，建议 >= 100
+                         shap_only = FALSE
+                        );
+  shap_viz <- shapviz(shap_values)
 
   # 3. 可视化
-#  p = sv_importance(shap_viz, max_display = 10) +  # 全局重要性前10特征
- #   ggtitle("SHAP Feature Importance")
-
-
+  pdf(file = "./shap.pdf");
+  print(sv_importance(shap_viz))  # 全局特征重要性
+  # 蜂群图（Beeswarm plot）
+  print(sv_waterfall(shap_viz, row_id = 1))  # 单个样本解释
+  dev.off();
 
 
   pdf(file = "./nomogram.pdf");
@@ -273,13 +274,13 @@ main <- function(file_path) {
   # 统计次数并降序排序
   counts <- sort(table(combined), decreasing = TRUE)
   # 提取前三个字符串名称
-  top_features <- names(head(counts, 3))
+  top_features <- names(head(counts, 5))
 
   # 4. 模型集成
   ensemble_result <- ensemble_model(X, y, top_features)
 
   # 5. 可视化
-  visualize_results(ensemble_result, X, y)
+  visualize_results(ensemble_result, X, y,top_features)
 
   return(ensemble_result)
 }
