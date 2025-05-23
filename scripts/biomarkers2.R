@@ -14,21 +14,21 @@ clean_data <- function(data, id_col = "ID", class_col = "class") {
     # 删除重复样本
     distinct(!!sym(id_col), .keep_all = TRUE) %>%
     # 缺失值处理
-    mutate(across(-c(!!sym(id_col), !!sym(class_col)), 
+    mutate(across(-c(!!sym(id_col), !!sym(class_col)),
                   ~ifelse(is.na(.), median(., na.rm = TRUE), .))) %>%
     # 异常值处理（IQR法）
-    mutate(across(-c(!!sym(id_col), !!sym(class_col)), 
-                  ~ifelse(. > quantile(., 0.75, na.rm = TRUE) + 1.5*IQR(., na.rm = TRUE), 
+    mutate(across(-c(!!sym(id_col), !!sym(class_col)),
+                  ~ifelse(. > quantile(., 0.75, na.rm = TRUE) + 1.5*IQR(., na.rm = TRUE),
                           quantile(., 0.75, na.rm = TRUE), .),
                   .names = "{.col}_cleaned")) %>%
     # 标准化处理
-    mutate(across(ends_with("_cleaned"), 
-                  scale, 
+    mutate(across(ends_with("_cleaned"),
+                  scale,
                   .names = "std_{.col}")) %>%
     select(-ends_with("_cleaned")) %>%
     rename(original_name = !!sym(class_col)) %>%
     mutate(class = factor(original_name))
-  
+
   return(data_clean)
 }
 
@@ -43,10 +43,10 @@ feature_selection <- function(data, class_col = "class", p_threshold = 0.05) {
       # ANOVA检验
       anova_result <- aov(value ~ class, data = .)
       p_value <- summary(anova_result)[[1]][5]
-      
+
       # 变异系数过滤（保留前50%高变异特征）
       cv <- sd(.$value)/mean(.$value)
-      
+
       data.frame(
         feature = unique(.$feature),
         p_value = p_value,
@@ -57,7 +57,7 @@ feature_selection <- function(data, class_col = "class", p_threshold = 0.05) {
     filter(significant) %>%
     arrange(p_value) %>%
     pull(feature)
-  
+
   return(significant_features)
 }
 
@@ -66,7 +66,7 @@ train_models <- function(data, features, class_col = "class") {
   # 分层抽样
   set.seed(123)
   split_idx <- createDataPartition(data$class, p = 0.7, list = FALSE)
-  
+
   # 训练XGBoost
   xgb_model <- xgboost(
     data = as.matrix(data[split_idx, features]),
@@ -75,7 +75,7 @@ train_models <- function(data, features, class_col = "class") {
     objective = "binary:logistic",
     eval_metric = "logloss"
   )
-  
+
   # 训练随机森林
   rf_model <- randomForest(
     x = data[split_idx, features],
@@ -83,7 +83,7 @@ train_models <- function(data, features, class_col = "class") {
     ntree = 500,
     importance = TRUE
   )
-  
+
   return(list(
     xgb = xgb_model,
     rf = rf_model,
@@ -95,7 +95,7 @@ train_models <- function(data, features, class_col = "class") {
 # 4. 特征重要性分析
 compute_importance <- function(models, test_data, features) {
   importance_list <- list()
-  
+
   # XGBoost SHAP值计算
   shap_values <- shap::shap.values(models$xgb, as.matrix(test_data[, features]))
   importance_list$shap <- shap_values %>%
@@ -103,13 +103,13 @@ compute_importance <- function(models, test_data, features) {
     group_by(feature) %>%
     summarise(mean_abs_shap = mean(abs(value))) %>%
     arrange(desc(mean_abs_shap))
-  
+
   # 随机森林重要性
   importance_list$rf <- varImp(models$rf) %>%
     data.frame() %>%
     mutate(feature = rownames(.)) %>%
     arrange(desc(Overall))
-  
+
   return(importance_list)
 }
 
@@ -119,7 +119,7 @@ evaluate_performance <- function(models, data, features, class_col = "class") {
   predictions <- list()
   predictions$xgb <- predict(models$xgb, as.matrix(data[, features]))
   predictions$rf <- predict(models$rf, newdata = data[, features], type = "prob")[, 2]
-  
+
   # 计算性能指标
   roc_results <- lapply(predictions, function(pred) {
     roc_obj <- roc(data[[class_col]], pred)
@@ -130,7 +130,7 @@ evaluate_performance <- function(models, data, features, class_col = "class") {
       Specificity = specificity(roc_obj, sensitivities = 0.95)
     )
   })
-  
+
   return(bind_rows(roc_results, .id = "Model"))
 }
 
@@ -143,7 +143,7 @@ visualize_results <- function(importance_list, performance, output_path) {
     labs(title = "SHAP Feature Importance", x = "Feature", y = "Mean Absolute SHAP") +
     theme_minimal(base_size = 12) +
     ggsave(file.path(output_path, "shap_importance.png"), width = 12, height = 8)
-  
+
   # 模型性能对比
   performance %>%
     pivot_longer(-Model, names_to = "Metric", values_to = "Value") %>%
@@ -159,29 +159,29 @@ visualize_results <- function(importance_list, performance, output_path) {
 run_biomarker_analysis <- function(input_file, output_dir, class_col = "class") {
   # 数据加载
   raw_data <- read.csv(input_file, check.names = FALSE)
-  
+
   # 数据清洗
   cleaned_data <- clean_data(raw_data)
-  
+
   # 特征筛选
   selected_features <- feature_selection(cleaned_data)
-  
+
   # 模型训练
   models <- train_models(cleaned_data, selected_features)
-  
+
   # 特征重要性计算
   importance <- compute_importance(models, cleaned_data[-models$test_idx, ], selected_features)
-  
+
   # 性能评估
   performance <- evaluate_performance(models, cleaned_data[-models$train_idx, ], selected_features)
-  
+
   # 可视化输出
   visualize_results(importance, performance, output_dir)
-  
+
   # 保存关键结果
-  write.csv(data.frame(Feature = selected_features), 
-           file.path(output_dir, "selected_features.csv"), row.names = FALSE)
-  
+  write.csv(data.frame(Feature = selected_features),
+            file.path(output_dir, "selected_features.csv"), row.names = FALSE)
+
   return(performance)
 }
 
@@ -191,27 +191,26 @@ run_biomarker_analysis <- function(input_file, output_dir, class_col = "class") 
 #   output_dir = "analysis_results",
 #   class_col = "class"
 # )
-   # 多组学数据扩展
-   run_biomarker_analysis(
-     input_file = "multiomics_data.csv",
-     class_col = "disease_status",
-     additional_steps = list(
-       # 添加代谢组学特征
-       add_metabolomics = TRUE,
-       # 添加影像组学特征
-       add_radiomics = TRUE
-     )
-   )
-   
+# 多组学数据扩展
+run_biomarker_analysis(
+  input_file = "multiomics_data.csv",
+  class_col = "disease_status",
+  additional_steps = list(
+    # 添加代谢组学特征
+    add_metabolomics = TRUE,
+    # 添加影像组学特征
+    add_radiomics = TRUE
+  )
+)
 
-      # XGBoost超参数优化
-   xgb_params <- list(
-     max_depth = 6,
-     eta = 0.3,
-     gamma = 0,
-     min_child_weight = 1,
-     subsample = 0.8,
-     colsample_bytree = 0.8,
-     objective = "binary:logistic"
-   )
-   
+
+# XGBoost超参数优化
+xgb_params <- list(
+  max_depth = 6,
+  eta = 0.3,
+  gamma = 0,
+  min_child_weight = 1,
+  subsample = 0.8,
+  colsample_bytree = 0.8,
+  objective = "binary:logistic"
+)
