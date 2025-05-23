@@ -19,6 +19,8 @@ preprocess_data <- function(data, remove_na = TRUE, normalize = TRUE) {
     filter(!is.na(class)) %>%
     select(-id)  # 移除ID列
 
+  colnames(data_clean) <- trimws(colnames(data_clean));
+
   for(name in colnames(data_clean)) {
     if (name != "class") {
       v <- as.numeric(data_clean[,name]);
@@ -80,37 +82,33 @@ run_random_forest <- function(X, y, ntree = 500) {
 }
 
 # 4. SVM-RFE特征选择
-run_svm_rfe <- function(X, y, n_features = 5, metric = "Accuracy", kernel = "radial") {
-
-  # 定义核函数参数模板
-  kernel_params <- list(
-    radial = list(
-      kernel = "radial",
-      gamma = 1/sqrt(ncol(X)),
-      cost = 1
-    ),
-    linear = list(
-      kernel = "linear",
-      cost = 10
-    ),
-    polynomial = list(
-      kernel = "polynomial",
-      degree = 3,
-      scale = TRUE,
-      coef0 = 0
-    ),
-    sigmoid = list(
-      kernel = "sigmoid",
-      gamma = 1/sqrt(ncol(X)),
-      coef0 = 0,
-      cost = 1
-    )
+run_svm_rfe <- function(X, y, n_features = 5, metric = "Accuracy", kernel = "radial",...) {
+  # 核方法映射表
+  method_map <- list(
+    radial = "svmRadial",
+    linear = "svmLinear",
+    polynomial = "svmPoly",
+    sigmoid = "svmSigmoid"
   )
 
-  # 验证核函数有效性
-  if(!kernel %in% names(kernel_params)) {
-    stop("Invalid kernel type. Choose from: ", paste(names(kernel_params), collapse = ", "))
-  }
+  # 参数模板（扩展默认值）
+  kernel_params <- list(
+    radial = list(gamma = 1/sqrt(ncol(X)), cost = 1),
+    linear = list(cost = 10),
+    polynomial = list(degree = 3, scale = TRUE, coef0 = 0, cost = 1),
+    sigmoid = list(gamma = 1/sqrt(ncol(X)), coef0 = 0, cost = 1)
+  )
+
+  # 参数合并与验证
+  svm_params <- modifyList(kernel_params[[kernel]], list(...))
+
+  # 生成调参网格
+  tuneGrid <- switch(kernel,
+                     "radial" = expand.grid(C = svm_params$cost, sigma = svm_params$gamma),
+                     "linear" = expand.grid(C = svm_params$cost),
+                     "polynomial" = expand.grid(C = svm_params$cost, degree = svm_params$degree, scale = svm_params$scale),
+                     "sigmoid" = expand.grid(C = svm_params$cost, sigma = svm_params$gamma, coef0 = svm_params$coef0)
+  )
 
   # 设置特征筛选控制参数
   ctrl <- rfeControl(
@@ -120,18 +118,19 @@ run_svm_rfe <- function(X, y, n_features = 5, metric = "Accuracy", kernel = "rad
     verbose = FALSE,
     returnResamp = "all",
     # 关键参数：强制遍历所有特征数量
-    saveDetails = TRUE,
-    maximize = metric == "Accuracy"
+    saveDetails = TRUE
   )
+
 
   # 定义特征筛选过程
   rfe_results <- rfe(
     X, y,
     sizes = 1:n_features,
     rfeControl = ctrl,
-    method = "svmRadial",
+    method = method_map[[kernel]],
     metric = metric,
     tuneLength = 5,
+    tuneGrid = tuneGrid,
     preProcess = c("center", "scale"),
     importance = TRUE
   )
@@ -146,8 +145,15 @@ run_svm_rfe <- function(X, y, n_features = 5, metric = "Accuracy", kernel = "rad
 # 5. 模型集成与验证
 ensemble_model <- function(X, y, selected_features) {
   # 构建列线图模型
-  formula <- as.formula(paste("class ~", paste(selected_features, collapse = "+")))
-  nomogram_model <- glm(formula, family = "binomial", data = as.data.frame(X))
+  factors = paste("`",paste(selected_features, collapse = "`+`"),"`", sep = "");
+
+  print("view factor list:");
+  print(factors);
+
+  formula <- as.formula(paste("class ~ ", factors ));
+  dX = as.data.frame(X);
+  dX[,"class"] <- y;
+  nomogram_model <- glm(formula, family = "binomial", data = dX)
 
   # 交叉验证评估
   cv_results <- cv.glmnet(X[, selected_features], y, family = "binomial", alpha = 0)
@@ -156,41 +162,66 @@ ensemble_model <- function(X, y, selected_features) {
   return(list(
     nomogram = nomogram_model,
     auc = roc_auc,
-    coefficients = coef(nomogram_model)
+    coefficients = coef(nomogram_model),
+    formula = formula,
+    dX = dX
   ))
 }
 
 # 6. 可视化模块
 visualize_results <- function(results, X, y) {
-  # 特征重要性热图
-  feature_importance <- bind_rows(
-    map(results, ~ tibble(
-      method = names(results),
-      feature = .x$features,
-      importance = rep(1, length(.x$features))
-    ))
-  )
+  nomogram_model <- results$nomogram;
+  auc <- results$auc;
+  coefficients <- results$coefficients;
+  dX = results$dX;
+  formula = results$formula;
 
-  pheatmap(
-    mat = reshape2::dcast(feature_importance, method ~ feature, value.var = "importance"),
-    cluster_rows = FALSE,
-    cluster_cols = FALSE,
-    main = "Feature Selection Consensus"
-  )
+  pdf(file = "./roc.pdf");
+  library(pROC)
+  # 获取预测概率
+  pred_prob <- predict(nomogram_model, type = "response")
+  # 绘制ROC曲线
+  roc_obj <- roc(y, pred_prob)
+  plot(roc_obj, print.auc = TRUE, auc.polygon = TRUE)
+  # 添加交叉验证的AUC值
+  text(0.5, 0.3, paste("CV AUC:", round(auc, 2)), col = "red");
+  dev.off();
 
-  # ROC曲线绘制
-  roc_data <- data.frame(
-    fpr = seq(0, 1, 0.01),
-    tpr = seq(0, 1, 0.01)
-  )
+  # library(rms)
+  # 转换为rms包数据格式
+  # ddist <- datadist(as.data.frame(X))
+  # options(datadist = "ddist")
+  # 绘制校准曲线
+  # cal <- calibrate(nomogram_model, method = "boot", B = 1000)
+  # plot(cal)
 
-  ggplot(roc_data, aes(x = fpr, y = tpr)) +
-    geom_line(color = "blue", size = 1) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
-    labs(title = paste("ROC Curve (AUC =", round(results$auc, 3), ")"),
-         x = "False Positive Rate",
-         y = "True Positive Rate") +
-    theme_minimal()
+  pdf(file = "./feature_importance.pdf");
+  library(ggplot2)
+  coef_df <- data.frame(
+    Feature = names(coefficients(nomogram_model))[-1],
+    Importance = abs(coefficients(nomogram_model)[-1])
+  )
+  ggplot(coef_df, aes(x = reorder(Feature, Importance), y = Importance)) +
+    geom_col(fill = "#87CEEB") +
+    coord_flip() +
+    labs(title = "Logistic Regression Feature Importance", x = "")
+  dev.off();
+
+  # library(fastshap)
+  # shap_values <- explain(nomogram_model, X = X[, selected_features])
+  # autoplot(shap_values, type = "importance")
+
+  pdf(file = "./nomogram.pdf");
+  library(rms)
+  # 重构模型为rms格式
+  lrm_model <- lrm(formula, data = dX, x = TRUE, y = TRUE)
+  nom <- nomogram(lrm_model, fun = plogis, funlabel = "Risk Probability")
+  plot(nom)
+  dev.off();
+
+  # library(rmda)
+  # dca_data <- decision_curve(formula, data = dX, family = binomial)
+  # plot_decision_curve(dca_data, curve.names = "Our Model")
 }
 
 # 主执行流程
