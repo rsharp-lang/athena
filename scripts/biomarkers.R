@@ -6,6 +6,7 @@
 # ----------------------------
 if (!require("pacman"))
   install.packages("pacman")
+  
 pacman::p_load(glmnet, # LASSO回归
                randomForest, # 随机森林
                e1071, # SVM基础包
