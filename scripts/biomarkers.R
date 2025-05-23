@@ -19,6 +19,15 @@ preprocess_data <- function(data, remove_na = TRUE, normalize = TRUE) {
     filter(!is.na(class)) %>%
     select(-id)  # 移除ID列
 
+  for(name in colnames(data_clean)) {
+    if (name != "class") {
+      v <- as.numeric(data_clean[,name]);
+      v[is.na(v)] <- mean(v[!is.na(v)])/2;
+
+      data_clean[,name] = v;
+    }
+  }
+
   # 分离特征和标签
   X <- as.matrix(data_clean %>% select(-class))
   y <- as.factor(data_clean$class)
@@ -181,7 +190,8 @@ multiomics_validation <- function(selected_features, clinical_data, omics_data) 
 
 # 添加临床决策曲线分析
 clinical_dca <- function(probabilities, labels) {
-  library(DCA)
+  library(DCA);
+
   dca_result <- DCA(data.frame(prob = probabilities, outcome = labels),
                     outcome.name = "outcome",
                     treat.name = "Treatment",
