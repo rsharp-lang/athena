@@ -1,6 +1,4 @@
-# 发挥你的资深级的数据分析工程师的能力，帮助我完成数据分析任务：现在假设我有一个数据矩阵，行是病人样本，列是生物学特征。矩阵中第一列为样本的id，这个矩阵中第二个列名字叫做class的列，
-# 包含对应的行的标签：有健康正常人标签，有其他的几种病理性标签，其他的列则是采样的生化指标检测结果。请编写R脚本代码，帮助我按照这篇文章中的思路方法来找出健康人和各种不同的病理性标签
-# 人群之间的biomarker，并绘制结果进行可视化。每一个步骤的分析应该是使用一个函数来表示。
+
 
 # 加载必要包
 library(ggplot2)
@@ -215,12 +213,33 @@ visualize_results <- function(results, X, y) {
   print(p);
   dev.off();
 
-  # library(fastshap)
-  # shap_values <- explain(nomogram_model, X = X[, selected_features])
-  # autoplot(shap_values, type = "importance")
+  #library(fastshap)
+ # library(shapviz)
+
+  # 若需输出类别预测（0/1）
+#  pred_wrapper_class <- function(model, newdata) {
+  #  as.numeric(predict(model, newdata = newdata, type = "response") > 0.5)
+ # }
+#  shap_values <- explain(nomogram_model, X = as.data.frame( X[, selected_features]),
+     #                    pred_wrapper =pred_wrapper_class,  # 必须指定
+    #                     nsim = 100,  # 蒙特卡洛模拟次数，建议 >= 100
+   #                      shap_only = FALSE
+  #                      );
+ # shap_viz <- shapviz(shap_values)
+
+  # 3. 可视化
+#  p = sv_importance(shap_viz, max_display = 10) +  # 全局重要性前10特征
+ #   ggtitle("SHAP Feature Importance")
+
+
+
 
   pdf(file = "./nomogram.pdf");
   library(rms)
+
+  ddist <<- datadist(dX);
+  options(datadist = "ddist");
+
   # 重构模型为rms格式
   lrm_model <- lrm(formula, data = dX, x = TRUE, y = TRUE)
   nom <- nomogram(lrm_model, fun = plogis, funlabel = "Risk Probability")
@@ -230,104 +249,6 @@ visualize_results <- function(results, X, y) {
   # library(rmda)
   # dca_data <- decision_curve(formula, data = dX, family = binomial)
   # plot_decision_curve(dca_data, curve.names = "Our Model")
-}
-
-# 文献2
-# 3. 模型训练模块
-train_models <- function(data, features, class_col = "class") {
-  # 分层抽样
-  set.seed(123)
-  split_idx <- createDataPartition(data$class, p = 0.7, list = FALSE)
-
-  # 训练XGBoost
-  xgb_model <- xgboost(
-    data = as.matrix(data[split_idx, features]),
-    label = as.numeric(data$class[split_idx]) - 1,
-    nrounds = 100,
-    objective = "binary:logistic",
-    eval_metric = "logloss"
-  )
-
-  # 训练随机森林
-  rf_model <- randomForest(
-    x = data[split_idx, features],
-    y = as.factor(data$class[split_idx]),
-    ntree = 500,
-    importance = TRUE
-  )
-
-  return(list(
-    xgb = xgb_model,
-    rf = rf_model,
-    train_idx = split_idx,
-    test_idx = -split_idx
-  ))
-}
-
-# 文献2
-# 4. 特征重要性分析
-compute_importance <- function(models, test_data, features) {
-  importance_list <- list()
-
-  # XGBoost SHAP值计算
-  shap_values <- SHAPforxgboost::shap.values(models$xgb, as.matrix(test_data[, features]))
-  importance_list$shap <- shap_values %>%
-    bind_rows() %>%
-    group_by(feature) %>%
-    summarise(mean_abs_shap = mean(abs(value))) %>%
-    arrange(desc(mean_abs_shap))
-
-  # 随机森林重要性
-  importance_list$rf <- varImp(models$rf) %>%
-    data.frame() %>%
-    mutate(feature = rownames(.)) %>%
-    arrange(desc(Overall))
-
-  return(importance_list)
-}
-
-# 文献2
-# 5. 性能评估模块
-evaluate_performance <- function(models, data, features, class_col = "class") {
-  # 预测结果
-  predictions <- list()
-  predictions$xgb <- predict(models$xgb, as.matrix(data[, features]))
-  predictions$rf <- predict(models$rf, newdata = data[, features], type = "prob")[, 2]
-
-  # 计算性能指标
-  roc_results <- lapply(predictions, function(pred) {
-    roc_obj <- roc(data[[class_col]], pred)
-    data.frame(
-      AUC = auc(roc_obj),
-      Accuracy = mean(data[[class_col]] == factor(ifelse(pred > 0.5, 2, 1))),
-      Sensitivity = sensitivity(roc_obj, specificities = 0.95),
-      Specificity = specificity(roc_obj, sensitivities = 0.95)
-    )
-  })
-
-  return(bind_rows(roc_results, .id = "Model"))
-}
-
-# 文献2
-# 6. 可视化模块
-visualize_results2 <- function(importance_list, performance, output_path) {
-  # 特征重要性热图
-  ggplot(importance_list$shap, aes(x = reorder(feature, mean_abs_shap), y = mean_abs_shap)) +
-    geom_col(fill = "#2c7bb6") +
-    coord_flip() +
-    labs(title = "SHAP Feature Importance", x = "Feature", y = "Mean Absolute SHAP") +
-    theme_minimal(base_size = 12) +
-    ggsave(file.path(output_path, "shap_importance.png"), width = 12, height = 8)
-
-  # 模型性能对比
-  performance %>%
-    pivot_longer(-Model, names_to = "Metric", values_to = "Value") %>%
-    ggplot(aes(x = Model, y = Value, fill = Model)) +
-    geom_col(position = "dodge") +
-    facet_wrap(~Metric, scales = "free") +
-    labs(title = "Model Performance Comparison") +
-    theme_minimal() +
-    ggsave(file.path(output_path, "model_comparison.png"), width = 12, height= 8)
 }
 
 
