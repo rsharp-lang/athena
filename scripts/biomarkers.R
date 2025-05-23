@@ -242,9 +242,14 @@ main <- function(file_path) {
   rf_result <- run_random_forest(X, y)
   svm_result <- run_svm_rfe(X, y)
 
+  combined <- c(as.character(lasso_result$features), as.character(rf_result$features), as.character(svm_result$features))
+  # 统计次数并降序排序
+  counts <- sort(table(combined), decreasing = TRUE)
+  # 提取前三个字符串名称
+  top_features <- names(head(counts, 3))
+
   # 4. 模型集成
-  ensemble_result <- ensemble_model(X, y,
-                                    intersect( intersect(lasso_result$features, rf_result$features), svm_result$features))
+  ensemble_result <- ensemble_model(X, y, top_features)
 
   # 5. 可视化
   visualize_results(ensemble_result, X, y)
