@@ -150,10 +150,12 @@ visualize_results <- function(results, X, y) {
 # 主执行流程
 main <- function(file_path) {
   # 1. 加载数据
-  data <- read.csv(file_path)
+  data <- read.csv(file_path);
+
+  class_filter = c("正常妊娠孕妇","复发性流产");
 
   # 2. 数据预处理
-  preprocessed <- preprocess_data(data)
+  preprocessed <- preprocess_data(data[data$class %in% class_filter,]);
   X <- preprocessed$X
   y <- preprocessed$y
 
