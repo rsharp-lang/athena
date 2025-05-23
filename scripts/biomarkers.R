@@ -201,10 +201,11 @@ visualize_results <- function(results, X, y) {
     Feature = names(coefficients(nomogram_model))[-1],
     Importance = abs(coefficients(nomogram_model)[-1])
   )
-  ggplot(coef_df, aes(x = reorder(Feature, Importance), y = Importance)) +
+  p = ggplot(coef_df, aes(x = reorder(Feature, Importance), y = Importance)) +
     geom_col(fill = "#87CEEB") +
     coord_flip() +
     labs(title = "Logistic Regression Feature Importance", x = "")
+  print(p);
   dev.off();
 
   # library(fastshap)
