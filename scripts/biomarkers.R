@@ -80,14 +80,60 @@ run_random_forest <- function(X, y, ntree = 500) {
 }
 
 # 4. SVM-RFE特征选择
-run_svm_rfe <- function(X, y, n_features = 5) {
-  ctrl <- rfeControl(functions = caretFuncs, method = "cv", number = 10)
+run_svm_rfe <- function(X, y, n_features = 5, metric = "Accuracy", kernel = "radial") {
 
-  rfe_results <- rfe(X, y,
-                     sizes = 1:n_features,
-                     rfeControl = ctrl,
-                     method = "svmRadial",
-                     metric = "Accuracy"
+  # 定义核函数参数模板
+  kernel_params <- list(
+    radial = list(
+      kernel = "radial",
+      gamma = 1/sqrt(ncol(X)),
+      cost = 1
+    ),
+    linear = list(
+      kernel = "linear",
+      cost = 10
+    ),
+    polynomial = list(
+      kernel = "polynomial",
+      degree = 3,
+      scale = TRUE,
+      coef0 = 0
+    ),
+    sigmoid = list(
+      kernel = "sigmoid",
+      gamma = 1/sqrt(ncol(X)),
+      coef0 = 0,
+      cost = 1
+    )
+  )
+
+  # 验证核函数有效性
+  if(!kernel %in% names(kernel_params)) {
+    stop("Invalid kernel type. Choose from: ", paste(names(kernel_params), collapse = ", "))
+  }
+
+  # 设置特征筛选控制参数
+  ctrl <- rfeControl(
+    functions = caretFuncs,
+    method = "cv",
+    number = 10,
+    verbose = FALSE,
+    returnResamp = "all",
+    # 关键参数：强制遍历所有特征数量
+    saveDetails = TRUE,
+    maximize = metric == "Accuracy"
+  )
+
+  # 定义特征筛选过程
+  rfe_results <- rfe(
+    X, y,
+    sizes = 1:n_features,
+    rfeControl = ctrl,
+    method = "svmRadial",
+    metric = metric,
+    tuneLength = 5,
+    preProcess = c("center", "scale"),
+    importance = TRUE
   )
 
   return(list(
@@ -166,7 +212,7 @@ main <- function(file_path) {
 
   # 4. 模型集成
   ensemble_result <- ensemble_model(X, y,
-                                    intersect(lasso_result$features, rf_result$features, svm_result$features))
+                                    intersect( intersect(lasso_result$features, rf_result$features), svm_result$features))
 
   # 5. 可视化
   visualize_results(ensemble_result, X, y)
