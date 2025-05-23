@@ -26,10 +26,14 @@ module ai_chat {
     export function format_html(out: output | string): string {
         let markedjs: markdown = (<any>window).marked;
 
+        // the AI has a bug about file url
+        // always has a localhost prefix, example as http://localhost:8000
+        // removes this prefix so that remote user can access the
+        // server file via the relative url
         if (typeof out == "string") {
-            return out;
+            return out ? out.replace(/http[:]\/\/localhost[:]\d+/g, "") : "";
         } else {
-            return markedjs.parse(out.output);
+            return markedjs.parse(out.output.replace(/http[:]\/\/localhost[:]\d+/g, ""));
         }
     }
 }
