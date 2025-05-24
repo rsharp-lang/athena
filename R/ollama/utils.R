@@ -36,7 +36,7 @@ const set_proxy = function(file) {
 #' @details convert the local image file path as the url could be used as the src attribute value of 
 #'    the html img tag. images format supports svg/png/bmp/jpg/jpeg/webp/gif.
 #' 
-#' @param img_file the target image file path ffor make convert to http url
+#' @param img_file the target image file path for make convert to http url
 #' 
 [@ollama "image_url"]
 const image_url = function(img_file) {
