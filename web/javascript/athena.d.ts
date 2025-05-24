@@ -11,6 +11,8 @@ declare module ai_chat {
     function chat_to(msg: string, show_msg: (ai_text: string, think?: string) => void): void;
     function think_text(out: output | string): string;
     function format_html(out: output | string): string;
+    const localhost: RegExp;
+    function removesLocalhost(txt: string): string;
 }
 declare namespace app {
     function run(): void;

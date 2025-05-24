@@ -26,14 +26,22 @@ module ai_chat {
     export function format_html(out: output | string): string {
         let markedjs: markdown = (<any>window).marked;
 
+        if (typeof out == "string") {
+            return out ? removesLocalhost(out) : "";
+        } else {
+            return markedjs.parse(removesLocalhost(out.output));
+        }
+    }
+
+    export const localhost = /https?:\/\/((localhost)|(127\.0\.0\.1)|(\[::1\]))(:\d+)?/g;
+
+    export function removesLocalhost(txt: string): string {
+        // http://127.0.0.1:8000
+        // http://localhost:8000
         // the AI has a bug about file url
         // always has a localhost prefix, example as http://localhost:8000
         // removes this prefix so that remote user can access the
         // server file via the relative url
-        if (typeof out == "string") {
-            return out ? out.replace(/http[:]\/\/localhost[:]\d+/g, "") : "";
-        } else {
-            return markedjs.parse(out.output.replace(/http[:]\/\/localhost[:]\d+/g, ""));
-        }
+        return txt.replace(localhost, "")
     }
 }

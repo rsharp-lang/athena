@@ -31,18 +31,25 @@ var ai_chat;
     ai_chat.think_text = think_text;
     function format_html(out) {
         var markedjs = window.marked;
+        if (typeof out == "string") {
+            return out ? removesLocalhost(out) : "";
+        }
+        else {
+            return markedjs.parse(removesLocalhost(out.output));
+        }
+    }
+    ai_chat.format_html = format_html;
+    ai_chat.localhost = /https?:\/\/((localhost)|(127\.0\.0\.1)|(\[::1\]))(:\d+)?/g;
+    function removesLocalhost(txt) {
+        // http://127.0.0.1:8000
+        // http://localhost:8000
         // the AI has a bug about file url
         // always has a localhost prefix, example as http://localhost:8000
         // removes this prefix so that remote user can access the
         // server file via the relative url
-        if (typeof out == "string") {
-            return out ? out.replace(/http[:]\/\/localhost[:]\d+/g, "") : "";
-        }
-        else {
-            return markedjs.parse(out.output.replace(/http[:]\/\/localhost[:]\d+/g, ""));
-        }
+        return txt.replace(ai_chat.localhost, "");
     }
-    ai_chat.format_html = format_html;
+    ai_chat.removesLocalhost = removesLocalhost;
 })(ai_chat || (ai_chat = {}));
 ///<reference path="../linq.d.ts" />
 var app;
