@@ -33,11 +33,12 @@ module ai_chat {
         }
     }
 
-    export const localhost = /https?:\/\/((localhost)|(127\.0\.0\.1)|(\[::1\]))(:\d+)?/g;
+    export const localhost = /https?:\/\/((localhost)|(127\.0\.0\.1)|(\[::1\])|(cdn\.example\.com))(:\d+)?/ig;
 
     export function removesLocalhost(txt: string): string {
         // http://127.0.0.1:8000
         // http://localhost:8000
+        // https://cdn.example.com
         // the AI has a bug about file url
         // always has a localhost prefix, example as http://localhost:8000
         // removes this prefix so that remote user can access the
