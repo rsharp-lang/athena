@@ -6,11 +6,26 @@ namespace webapp {
             return "chatbox";
         }
 
-        public ai_avatar_url = "./images/avatar/athena_default.jpg";
+        public ai_avatar_url = "/images/avatar/athena_default.jpg";
         public ai_name = "Athena";
 
         protected init(): void {
-            this.addAIMsg("Hi, I'm athena, talk to me for data analysis.");
+            $ts.get("/get/athena_config", config => {
+                if (config.code == 0) {
+                    const config_data: {
+                        ollama: string,
+                        avatar: string,
+                        startup: string,
+                        name: string
+                    } = <any>config.info;
+
+                    ai_chat.ollama_api = config_data.ollama;
+
+                    this.ai_avatar_url = config_data.avatar;
+                    this.ai_name = config_data.name;
+                    this.addAIMsg(config_data.startup);
+                }
+            });
         }
 
         public send_onclick() {

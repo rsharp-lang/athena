@@ -15,7 +15,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 var ai_chat;
 (function (ai_chat) {
-    ai_chat.ollama_api = "/ollama_talk";
+    ai_chat.ollama_api = "/ollama/talk";
     function chat_to(msg, show_msg) {
         $ts.post(ai_chat.ollama_api, { msg: msg }, function (result) { return show_msg(format_html(result.info), think_text(result.info)); }, { sendContentType: true, wrapPlantTextError: true });
     }
@@ -69,7 +69,7 @@ var webapp;
         __extends(chatbox, _super);
         function chatbox() {
             var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this.ai_avatar_url = "./images/avatar/athena_default.jpg";
+            _this.ai_avatar_url = "/images/avatar/athena_default.jpg";
             _this.ai_name = "Athena";
             return _this;
         }
@@ -81,7 +81,16 @@ var webapp;
             configurable: true
         });
         chatbox.prototype.init = function () {
-            this.addAIMsg("Hi, I'm athena, talk to me for data analysis.");
+            var _this = this;
+            $ts.get("/get/athena_config", function (config) {
+                if (config.code == 0) {
+                    var config_data = config.info;
+                    ai_chat.ollama_api = config_data.ollama;
+                    _this.ai_avatar_url = config_data.avatar;
+                    _this.ai_name = config_data.name;
+                    _this.addAIMsg(config_data.startup);
+                }
+            });
         };
         chatbox.prototype.send_onclick = function () {
             var _this = this;

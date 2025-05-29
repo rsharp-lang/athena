@@ -1,6 +1,6 @@
 module ai_chat {
 
-    export var ollama_api = "/ollama_talk";
+    export var ollama_api = "/ollama/talk";
 
     export interface markdown {
         parse(md: string): string;
