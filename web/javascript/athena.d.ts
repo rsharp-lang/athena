@@ -1,12 +1,17 @@
 /// <reference path="../../src/linq.d.ts" />
 declare module ai_chat {
     var ollama_api: string;
+    var notifyFunctionCalls: (calls: function_call[]) => void;
     interface markdown {
         parse(md: string): string;
     }
     interface output {
         think: string;
         output: string;
+    }
+    interface function_call {
+        name: string;
+        arguments: {};
     }
     function chat_to(msg: string, show_msg: (ai_text: string, think?: string) => void): void;
     function think_text(out: output | string): string;

@@ -1,6 +1,7 @@
 module ai_chat {
 
     export var ollama_api = "/ollama/talk";
+    export var notifyFunctionCalls: (calls: function_call[]) => void = null;
 
     export interface markdown {
         parse(md: string): string;
@@ -11,8 +12,42 @@ module ai_chat {
         output: string;
     }
 
+    export interface function_call {
+        name: string;
+        arguments: {};
+    }
+
     export function chat_to(msg: string, show_msg: (ai_text: string, think?: string) => void) {
-        $ts.post(ollama_api, { msg: msg }, result => show_msg(format_html(<any>result.info), think_text(<any>result.info)), { sendContentType: true, wrapPlantTextError: true });
+        $ts.post(ollama_api, { msg: msg }, result => {
+            if (result.code == 0) {
+                let data: {
+                    function_calls: function_call[],
+                    output: output
+                } = <any>result.info;
+
+                if (typeof (<any>data) === "string") {
+                    data = {
+                        function_calls: null,
+                        output: <any>data
+                    }
+                }
+
+                show_msg(format_html(data.output), think_text(data.output));
+
+                if (data.function_calls) {
+                    if (!Array.isArray(data.function_calls)) {
+                        data.function_calls = [<any>data.function_calls];
+                    }
+
+                    if (notifyFunctionCalls) {
+                        notifyFunctionCalls(data.function_calls);
+                    }
+                }
+            }
+        }, {
+            sendContentType: true,
+            wrapPlantTextError: true
+        });
     }
 
     export function think_text(out: output | string): string {

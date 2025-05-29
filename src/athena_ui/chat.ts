@@ -10,6 +10,8 @@ namespace webapp {
         public ai_name = "Athena";
 
         protected init(): void {
+            $ts("#ai_progress").hide();
+
             $ts.get("/get/athena_config", config => {
                 if (config.code == 0) {
                     const config_data: {
@@ -32,8 +34,17 @@ namespace webapp {
             let text = $ts.value("#talk");
 
             $ts.value("#talk", "");
+            $ts("#ai_progress").show();
+            $ts("#user_input").interactive(false);
+
             this.addMyChat(text);
-            ai_chat.chat_to(text, (msg, think) => this.addAIMsg(msg, think));
+
+            ai_chat.chat_to(text, (msg, think) => {
+                $ts("#ai_progress").hide();
+                $ts("#user_input").interactive(true);
+
+                this.addAIMsg(msg, think);
+            });
         }
 
         private addAIMsg(html: string, think: string = null) {

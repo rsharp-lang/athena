@@ -16,8 +16,31 @@ var __extends = (this && this.__extends) || (function () {
 var ai_chat;
 (function (ai_chat) {
     ai_chat.ollama_api = "/ollama/talk";
+    ai_chat.notifyFunctionCalls = null;
     function chat_to(msg, show_msg) {
-        $ts.post(ai_chat.ollama_api, { msg: msg }, function (result) { return show_msg(format_html(result.info), think_text(result.info)); }, { sendContentType: true, wrapPlantTextError: true });
+        $ts.post(ai_chat.ollama_api, { msg: msg }, function (result) {
+            if (result.code == 0) {
+                var data_1 = result.info;
+                if (typeof data_1 === "string") {
+                    data_1 = {
+                        function_calls: null,
+                        output: data_1
+                    };
+                }
+                show_msg(format_html(data_1.output), think_text(data_1.output));
+                if (data_1.function_calls) {
+                    if (!Array.isArray(data_1.function_calls)) {
+                        data_1.function_calls = [data_1.function_calls];
+                    }
+                    if (ai_chat.notifyFunctionCalls) {
+                        ai_chat.notifyFunctionCalls(data_1.function_calls);
+                    }
+                }
+            }
+        }, {
+            sendContentType: true,
+            wrapPlantTextError: true
+        });
     }
     ai_chat.chat_to = chat_to;
     function think_text(out) {
@@ -82,6 +105,7 @@ var webapp;
         });
         chatbox.prototype.init = function () {
             var _this = this;
+            $ts("#ai_progress").hide();
             $ts.get("/get/athena_config", function (config) {
                 if (config.code == 0) {
                     var config_data = config.info;
@@ -96,8 +120,14 @@ var webapp;
             var _this = this;
             var text = $ts.value("#talk");
             $ts.value("#talk", "");
+            $ts("#ai_progress").show();
+            $ts("#user_input").interactive(false);
             this.addMyChat(text);
-            ai_chat.chat_to(text, function (msg, think) { return _this.addAIMsg(msg, think); });
+            ai_chat.chat_to(text, function (msg, think) {
+                $ts("#ai_progress").hide();
+                $ts("#user_input").interactive(true);
+                _this.addAIMsg(msg, think);
+            });
         };
         chatbox.prototype.addAIMsg = function (html, think) {
             if (think === void 0) { think = null; }
