@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Generate a proxied download link for local files This function creates a temporary proxy link for accessing local files through a web interface. It copies the input file to a temporary directory with an MD5-hashed path and returns a structured download link.</title>
+    <title>Generate a proxied download link for local files</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -18,7 +18,7 @@
             </tr>
         </table>
 
-        <h2>Generate a proxied download link for local files This function creates a temporary proxy link for accessing local files through a web interface. It copies the input file to a temporary directory with an MD5-hashed path and returns a structured download link.</h2>
+        <h2>Generate a proxied download link for local files</h2>
 
         <h3>Description</h3>
 
@@ -52,9 +52,9 @@
 
         <p>A named list containing download metadata with two elements: \describe{ \item{href}{Character string containing the URL path for file download, formatted as `/get/file?key=<md5_hash>`} \item{filename}{Character string preserving the original filename with extension} }</p>
 
-        <h3 style="display: none;">Examples</h3>
+        <h3 style="display: block;">Examples</h3>
 
-        
+        <pre><code id="example_r">\dontrun{ # Set temporary directory first options(proxy_tmp = "/var/www/tmp") # Generate proxy link for sample file file_proxy("/data/files/report.pdf") # Returns: list( #   href = "/get/file?key=5d41402abc4b2a76b9719d911017c592", #   filename = "report.pdf" # ) }</code></pre>
 
         <hr />
         <div style="text-align: center;">[Package <em>Athena</em> version 0.1.0 <a

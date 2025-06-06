@@ -1,4 +1,4 @@
-﻿.TH BUILD_OLLAMA_TOOLS 1 2025-Jun "" "@title Build Ollama AI Toolset"
+﻿.TH BUILD_OLLAMA_TOOLS 1 2025-Jun "" "build_ollama_tools"
 .SH NAME
 build_ollama_tools \- build_ollama_tools(
     <i>deepseek</i> = <span style='color: blue !important;'>NULL</span>)
@@ -21,6 +21,12 @@ Invisibly returns the modified Ollama client object with attached tools.
 .PP
 The toolset construction process includes two phases: \enumerate{ \item System Tool Injection - Adds a mandatory `sys_info` tool containing: \itemize{ \item System name and introduction text \item Developer information \item Programming language details \item GitHub repository URL \item License information } \item Environment Scanning - Detects functions with \code{@ollama} attributes: \itemize{ \item Requires \code{roxygen2}-style documentation for parameters and descriptions \item Extracts argument specifications from \code{@param} tags \item Identifies required parameters through documentation analysis } }
 .PP
+.SH EXAMPLES
+.PP
+\dontrun{ # Initialize client and build toolset client <- ollama::new_client() build_ollama_tools(client) # Check attached tools ollama::list_tools(client) }
+.PP
+.SH SEE ALSO
+\code{\link{ollama::add_tool}} for the underlying tool attachment mechanism
 .SH FILES
 .PP
 SMRUCC/R#.declare_function.build_ollama_tools at ollama_tools.R:line 60

@@ -1,4 +1,4 @@
-﻿.TH FILE_PROXY 1 2025-Jun "" "Generate a proxied download link for local files This function creates a temporary proxy link for accessing local files through a web interface. It copies the input file to a temporary directory with an MD5-hashed path and returns a structured download link."
+﻿.TH FILE_PROXY 1 2025-Jun "" "Generate a proxied download link for local files"
 .SH NAME
 file_proxy \- file_proxy(file)
 .SH SYNOPSIS
@@ -14,6 +14,10 @@ A named list containing download metadata with two elements: \describe{ \item{hr
 .SH DETAILS
 .PP
 The function performs three key operations: \enumerate{ \item Generates MD5 hash based on file path and current timestamp \item Creates nested temporary directory using hash fragments (e.g., /temp/a1b2c/d4e5f) \item Copies original file to hashed location while preserving extension }
+.PP
+.SH EXAMPLES
+.PP
+\dontrun{ # Set temporary directory first options(proxy_tmp = "/var/www/tmp") # Generate proxy link for sample file file_proxy("/data/files/report.pdf") # Returns: list( #   href = "/get/file?key=5d41402abc4b2a76b9719d911017c592", #   filename = "report.pdf" # ) }
 .PP
 .SH FILES
 .PP

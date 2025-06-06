@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>@title Build Ollama AI Toolset</title>
+    <title>build_ollama_tools</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <link rel="stylesheet" type="text/css" href="../../_assets/page.css">
@@ -18,7 +18,7 @@
             </tr>
         </table>
 
-        <h2>@title Build Ollama AI Toolset</h2>
+        <h2>build_ollama_tools</h2>
 
         <h3>Description</h3>
 
@@ -53,9 +53,9 @@
 
         <p>Invisibly returns the modified Ollama client object with attached tools.</p>
 
-        <h3 style="display: none;">Examples</h3>
+        <h3 style="display: block;">Examples</h3>
 
-        
+        <pre><code id="example_r">\dontrun{ # Initialize client and build toolset client <- ollama::new_client() build_ollama_tools(client) # Check attached tools ollama::list_tools(client) }</code></pre>
 
         <hr />
         <div style="text-align: center;">[Package <em>Athena</em> version 0.1.0 <a

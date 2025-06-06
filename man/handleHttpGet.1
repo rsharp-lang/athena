@@ -1,4 +1,4 @@
-﻿.TH HANDLEHTTPGET 1 2025-Jun "" "@title Handle HTTP GET Request"
+﻿.TH HANDLEHTTPGET 1 2025-Jun "" "handleHttpGet"
 .SH NAME
 handleHttpGet \- handleHttpGet(req, response)
 .SH SYNOPSIS
@@ -22,6 +22,8 @@ Modifies `response` object in-place. No explicit return value.
 .PP
 1. Follows similar debug and routing logic as \code{handleHttpPost}.\cr 2. Additional static file handling: Serves files from `wwwroot` via \code{host_file()} if path exists.\cr 3. Only executes R script via \code{exec_r()} when no static file matches.
 .PP
+.SH SEE ALSO
+\code{\link{handleHttpPost}}, \code{\link{http_exists}}
 .SH FILES
 .PP
 SMRUCC/R#.declare_function.handleHttpGet at get.R:line 12

@@ -1,4 +1,4 @@
-﻿.TH HANDLEHTTPPOST 1 2025-Jun "" "@title Handle HTTP POST Request"
+﻿.TH HANDLEHTTPPOST 1 2025-Jun "" "handleHttpPost"
 .SH NAME
 handleHttpPost \- handleHttpPost(req, response)
 .SH SYNOPSIS
@@ -22,6 +22,8 @@ Modifies `response` object in-place. No explicit return value.
 .PP
 1. Retrieves global configurations for web root directory (`wwwroot`) and registered apps (`apps`).\cr 2. When `verbose=TRUE`, prints debug information including raw HTTP headers.\cr 3. Routes request to app-specific handler if URL matches registered apps via \code{check_url()}.\cr 4. Falls back to executing R context script in `wwwroot` via \code{exec_r()} if no app matches.
 .PP
+.SH SEE ALSO
+\code{\link{handleHttpGet}}, \code{\link{run_http}}
 .SH FILES
 .PP
 SMRUCC/R#.declare_function.handleHttpPost at post.R:line 14

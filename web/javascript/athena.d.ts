@@ -34,3 +34,9 @@ declare namespace webapp {
         private addMyChat;
     }
 }
+declare namespace file_proxy {
+    interface img {
+        src: string;
+        filename: string;
+    }
+}
