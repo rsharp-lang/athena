@@ -1675,6 +1675,10 @@ declare function getAllUrlParams(url?: string): Dictionary<string>;
 declare function $goto(url: string, currentFrame?: boolean): void;
 declare function $download(url: string, rename?: string): void;
 /**
+ * download the data inside a given html table element tag or typescript dataframe object or treated a collection of the object as table data in excel table file.
+*/
+declare function $downloadExcel(table: HTMLTableElement | csv.dataframe | {}[], sheetName: string, fileName?: string): void;
+/**
  * 这个函数会自动处理多行的情况
 */
 declare function base64_decode(stream: string): string;
@@ -2006,9 +2010,24 @@ declare namespace DOM {
 }
 declare namespace DOM.Excel {
     const contentType: string;
+    /**
+     * Download the excel table file
+     *
+     * just use the download attribute of the given &lt;a> tag as the file name.
+     * this function call the ``excel`` function for make the table download
+    */
     function attatchDownload(a: HTMLAnchorElement, table: string | HTMLTableElement, sheetName?: string, filters?: string[]): void;
-    function excel(table: HTMLTableElement, fileName: string, sheetName: string, filters?: string[]): void;
+    /**
+     * Download the excel table file
+     *
+     * @param table should be a html table tag element object or a typescript dataframe object.
+    */
+    function excel(table: HTMLTableElement | csv.dataframe, fileName: string, sheetName: string, filters?: string[]): void;
     function ToExcel(table: HTMLTableElement, sheetName: string, filters?: string[]): string;
+    /**
+     * @param table a delegate function for get table html string
+    */
+    function excelHtml(table: Delegate.Func<string>, sheetName: string): string;
     function ToHtml(table: HTMLTableElement, filters?: string[]): string;
 }
 declare namespace DOM {
@@ -3617,6 +3636,9 @@ declare namespace csv.HTML {
      * @returns 表格的HTML代码
     */
     function toHTMLTable(data: dataframe, tblClass?: string[]): string;
+    /**
+     * cast the object collection as the dataframe object and then call ``toHTMLTable`` function for cast dataframe as the html string
+    */
     function createHTMLTable<T extends object>(data: IEnumerator<T>, tblClass?: string[]): string;
 }
 declare namespace csv {
