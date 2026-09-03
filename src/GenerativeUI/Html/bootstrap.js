@@ -138,7 +138,10 @@
             }
 
             return attempt(candidates[index++]).then(function (binding) {
-                return binding || next();
+                if (!binding) return next();
+
+                hostBinding = binding;
+                return binding;
             });
         }
 
