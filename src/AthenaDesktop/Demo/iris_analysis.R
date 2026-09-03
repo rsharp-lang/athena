@@ -104,15 +104,17 @@ plot_ext <- if (use_svg) "svg" else "png"
 plot_path <- function(name) file.path(out_dir, sprintf("%s.%s", name, plot_ext))
 
 open_dev <- function(path, w, h) {
+  font_family <- "Microsoft YaHei"
   if (use_svg) {
-    svg(path, width = w / 96, height = h / 96)
+    svg(path, width = w / 96, height = h / 96, family = font_family)
   } else {
     ok <- tryCatch({
-      png(path, width = w, height = h, res = 96, type = "cairo")
+      png(path, width = w, height = h, res = 96, type = "cairo", family = font_family)
       TRUE
     }, error = function(e) FALSE)
-    if (!isTRUE(ok)) png(path, width = w, height = h, res = 96)
+    if (!isTRUE(ok)) png(path, width = w, height = h, res = 96, family = font_family)
   }
+  par(family = font_family)
 }
 
 # ---------------------------------------------------------------- 调色板 ----

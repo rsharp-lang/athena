@@ -36,6 +36,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Demo\**\*.*" />
+    <Content Include="Demo\iris_analysis.R">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="My Project\Application.Designer.vb">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
