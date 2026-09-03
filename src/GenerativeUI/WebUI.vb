@@ -234,7 +234,7 @@ Public Class WebUI
 
         Select Case msg.action
             Case "host_call"
-                Dim result As String = Await js.Invoke(msg.command, If(msg.payload, "{}"))
+                Dim result As String = Await js.CallHost(msg.command, If(msg.payload, "{}"))
 
                 ' result 本身就是一段 json 文本，这里作为字符串回传，
                 ' 由网页侧再解析一次，避免 json 嵌套转义带来的问题
