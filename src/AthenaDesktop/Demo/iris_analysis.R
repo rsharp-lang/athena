@@ -235,11 +235,6 @@ cat("[5/6] 正在绘制结果图...\n")
 open_dev(plot_path("01_pairs_overview"), plot_w, plot_h)
 par(mar = c(1.2, 1.2, 2.6, 1.2), oma = c(2.5, 2.5, 0.6, 0.6), mgp = c(1.6, 0.5, 0), xpd = NA)
 
-panel_cor <- function(u, v, ...) {
-  points(u, v, pch = 19, cex = point_size * 0.72,
-         col = point_col_vec[match(v, u)])
-  invisible(NULL)
-}
 point_col_vec <- if (has_species) {
   adjustcolor(species_cols[as.integer(sp)], alpha.f = point_alpha)
 } else {
@@ -258,6 +253,7 @@ dev.off()
 
 # 图 2：聚类结果 -------------------------------------------------------------
 open_dev(plot_path("02_kmeans_clusters"), plot_w, plot_h)
+par(oma = c(0, 0, 2.4, 0))
 layout(matrix(1:4, 2, 2, byrow = TRUE))
 par(mar = c(4, 4, 3, 1.4), mgp = c(2, 0.7, 0), xpd = NA)
 
@@ -270,8 +266,12 @@ plot(df[[v1]], df[[v2]], col = adjustcolor(cluster_cols[cl], alpha.f = point_alp
      pch = 19, cex = point_size, xlab = v1, ylab = v2,
      main = paste0("聚类结果 (", v1, " × ", v2, ")"))
 grid(col = "grey88", lty = 3)
-centers_raw <- if (scale_data) sweep(km$centers, 2, attr(x_km, "scaled:scale"), "*") else km$centers
-centers_raw <- sweep(centers_raw, 2, attr(x_km, "scaled:center"), "+")
+if (scale_data) {
+  centers_raw <- sweep(km$centers, 2, attr(x_km, "scaled:scale"), "*")
+  centers_raw <- sweep(centers_raw, 2, attr(x_km, "scaled:center"), "+")
+} else {
+  centers_raw <- km$centers
+}
 points(centers_raw[, v1], centers_raw[, v2], pch = 8, cex = 2, lwd = 2.4, col = "#0E1B2A")
 
 plot(df[[v3]], df[[v4]], col = adjustcolor(cluster_cols[cl], alpha.f = point_alpha),
@@ -290,7 +290,7 @@ barplot(km$withinss, names.arg = paste0("簇", seq_len(k)),
         main = "簇内平方和 (withinss)", ylab = "withinss", xlab = "聚类簇")
 grid(nx = NA, ny = NULL, col = "grey88", lty = 3)
 
-mtext(paste0(main_title, " — kmeans 聚类 (k = ", k, ")"), outer = TRUE, line = -1.6, font = 2, cex = 1.1)
+mtext(paste0(main_title, " — kmeans 聚类 (k = ", k, ")"), outer = TRUE, line = 0.4, font = 2, cex = 1.05)
 dev.off()
 
 # 图 3：PCA 方差解释 ---------------------------------------------------------
