@@ -1,5 +1,7 @@
+Imports System.IO
 Imports System.Text
 Imports System.Text.Json.Serialization
+Imports System.Text.RegularExpressions
 Imports Ollama
 
 ''' <summary>
@@ -97,8 +99,8 @@ Public Class RScriptAnalyzer
             Call sb.AppendLine("你是一个 R 语言脚本分析专家，负责从 GNU R 脚本之中归纳出所有可以被终端用户在图形界面上调整的运行参数。")
             Call sb.AppendLine()
             Call sb.AppendLine("## 脚本的运行参数约定")
-            Call sb.AppendLine("- 宿主程序会通过命令行以 `key=value` 的形式把参数传递给脚本，例如 `Rscript demo.R k=3 palette=rainbow`。")
-            Call sb.AppendLine("- 脚本内部通过 `commandArgs(trailingOnly = TRUE)` 读取这些 `key=value` 参数。")
+            Call sb.AppendLine("- 宿主程序会通过命令行以 key=value 的形式把参数传递给脚本，例如 `Rscript demo.R k=3 palette=rainbow`。")
+            Call sb.AppendLine("- 脚本内部通过 commandArgs(trailingOnly = TRUE) 读取这些 key=value 参数。")
             Call sb.AppendLine("- 因此，参数的 name 必须与脚本之中读取该参数时所使用的键名**完全一致**（区分大小写）。")
             Call sb.AppendLine()
             Call sb.AppendLine("## 需要找出来的参数类型")
@@ -119,7 +121,7 @@ Public Class RScriptAnalyzer
             Call sb.AppendLine("## 约束")
             Call sb.AppendLine("- 不要输出任何解释文字，代码块之外不要写任何内容。")
             Call sb.AppendLine("- 最多输出 20 个参数，优先挑选对分析结果影响最大的参数。")
-            Call sb.AppendLine("- 如果脚本之中没有任何可调整的参数，就输出一个空数组 `[]`。")
+            Call sb.AppendLine("- 如果脚本之中没有任何可调整的参数，就输出一个空数组 []。")
             Call sb.AppendLine("- type 只能取：number、integer、text、textarea、select、color、file、folder、bool 之一。")
             Call sb.AppendLine("- label 与 description 一律使用简体中文。")
 
@@ -133,11 +135,11 @@ Public Class RScriptAnalyzer
     ''' <param name="scriptFile">目标 R 脚本的文件路径</param>
     ''' <returns>参数描述数组；分析失败时返回空数组</returns>
     Public Async Function Analyze(scriptFile As String) As Task(Of ParameterDescriptor())
-        If Not IO.File.Exists(scriptFile) Then
-            Throw New IO.FileNotFoundException($"目标 R 脚本文件不存在: {scriptFile}", scriptFile)
+        If Not File.Exists(scriptFile) Then
+            Throw New FileNotFoundException($"目标 R 脚本文件不存在: {scriptFile}", scriptFile)
         End If
 
-        Dim code As String = IO.File.ReadAllText(scriptFile, Encoding.UTF8)
+        Dim code As String = File.ReadAllText(scriptFile, Encoding.UTF8)
         Dim prompt As String = BuildPrompt(scriptFile, code)
         Dim response As LLMsResponse = Await llm.Chat(prompt)
 
@@ -163,15 +165,15 @@ Public Class RScriptAnalyzer
 
     Private Shared Function BuildPrompt(scriptFile As String, code As String) As String
         Dim sb As New StringBuilder
-        Dim lines As String() = code.LineTokens
+        Dim lines As String() = code.Replace(vbCrLf, vbLf).Replace(vbCr, vbLf).Split(vbLf(0))
 
         If lines.Length > 600 Then
-            code = lines.Take(600).JoinBy(vbCrLf) & vbCrLf & "# ... (脚本剩余部分被省略)"
+            code = String.Join(vbCrLf, lines.Take(600)) & vbCrLf & "# ... (脚本剩余部分被省略)"
         End If
 
         Call sb.AppendLine("请分析下面这个 GNU R 脚本，归纳出所有可以被终端用户在图形界面上调整的运行参数，然后按照系统提示词之中约定的 json 格式输出。")
         Call sb.AppendLine()
-        Call sb.AppendLine($"脚本文件名: {IO.Path.GetFileName(scriptFile)}")
+        Call sb.AppendLine($"脚本文件名: {Path.GetFileName(scriptFile)}")
         Call sb.AppendLine($"脚本总行数: {lines.Length}")
         Call sb.AppendLine()
         Call sb.AppendLine("----- 脚本源代码开始 -----")
@@ -200,7 +202,7 @@ Public Class RScriptAnalyzer
             p.name = p.name.Trim()
 
             ' 参数名只允许出现字母、数字与下划线，避免污染命令行
-            If Not System.Text.RegularExpressions.Regex.IsMatch(p.name, "^[A-Za-z][A-Za-z0-9_]*$") Then
+            If Not Regex.IsMatch(p.name, "^[A-Za-z][A-Za-z0-9_]*$") Then
                 Continue For
             End If
             If Not exists.Add(p.name) Then
