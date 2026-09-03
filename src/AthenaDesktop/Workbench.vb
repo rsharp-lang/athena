@@ -32,13 +32,17 @@ Module Workbench
     ''' 获取内置的 Iris 演示 R 脚本的完整路径
     ''' </summary>
     Public Function GetDemoRScriptPath() As String
-        Dim p As String = Path.Combine(Application.StartupPath, "Demo", "iris_analysis.R")
-
-        If Not File.Exists(p) Then
-            p = Path.Combine(Application.StartupPath, DemoRScriptRelative)
-        End If
-
-        Return p
+        Return Path.Combine(Application.StartupPath, "Demo", "iris_analysis.R")
     End Function
+
+    ''' <summary>
+    ''' 内置演示脚本所在的目录，用作文件对话框的初始目录
+    ''' </summary>
+    ''' <returns></returns>
+    Public ReadOnly Property DemoDirectory As String
+        Get
+            Return Path.Combine(Application.StartupPath, "Demo")
+        End Get
+    End Property
 
 End Module
