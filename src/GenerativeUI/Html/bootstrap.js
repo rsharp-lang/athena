@@ -193,6 +193,11 @@
             box.classList.add('gu-fade-up');
         },
 
+        /* 连通性自检：确认宿主对象已经成功注入并且方法分发正常 */
+        ping: function () {
+            return Promise.resolve(hostObject().ping());
+        },
+
         /* 打开一个文件对话框选择 R 脚本，并触发后续的分析与界面生成流程 */
         openScript: function () {
             return GenUI.call('open_rscript', {});

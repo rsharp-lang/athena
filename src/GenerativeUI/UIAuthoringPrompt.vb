@@ -26,7 +26,7 @@ Public Module UIAuthoringPrompt
         Call sb.AppendLine("- 界面文案一律使用简体中文，代码注释可以用中文。")
         Call sb.AppendLine()
         Call sb.AppendLine("## 宿主能力（Host API）")
-        Call sb.AppendLine("页面之中存在一个全局宿主对象 window.host，但**不要直接调用它**，请统一使用宿主注入的引导门面 window.GenUI：")
+        Call sb.AppendLine("页面之中存在一个全局宿主对象（window.chrome.webview.hostObjects.host / window.host），但**不要直接调用它**，请统一使用宿主注入的引导门面 window.GenUI：")
         Call sb.AppendLine()
         Call sb.AppendLine("- `GenUI.call(cmd, payload)` → Promise")
         Call sb.AppendLine("  调用一个宿主命令。cmd 是字符串命令名，payload 是普通对象。成功时 resolve 宿主的 data 字段，失败时 reject 一个 Error（消息取自 error 字段）。")
@@ -45,6 +45,11 @@ Public Module UIAuthoringPrompt
         Call sb.AppendLine("  `{ images: [{name, title, dataUri}], tables: [{name, title, headers: [], rows: [[]]}], texts: [{name, title, text}], stdout, stderr, exitCode, elapsed_ms, out_dir }`")
         Call sb.AppendLine("- `GenUI.image(img)` / `GenUI.table(t)` / `GenUI.text(t)`")
         Call sb.AppendLine("  单独渲染一张图片 / 一张表格 / 一段文本，返回对应的 DOM 元素，便于你自定义布局。")
+        Call sb.AppendLine("- `GenUI.ping()` → Promise&lt;string&gt;")
+        Call sb.AppendLine("  宿主连通性自检，返回宿主对象的版本与已注册命令数量，可用于排查宿主对象是否可用。")
+        Call sb.AppendLine()
+        Call sb.AppendLine("宿主对象之上**只暴露** callHost / getCommands / log / version / ping 这几个方法，")
+        Call sb.AppendLine("其中 callHost(command, payloadJson) 是调用宿主能力的唯一入口；请不要使用其它方法名（例如 invoke 是不可用的）。")
         Call sb.AppendLine()
 
         If Not host Is Nothing Then
