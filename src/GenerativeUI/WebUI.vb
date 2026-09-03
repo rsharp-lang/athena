@@ -143,6 +143,51 @@ Public Class WebUI
     End Sub
 
     ''' <summary>
+    ''' 通知网页：一个新的流式输出阶段开始了，网页端应当清空上一阶段的显示内容
+    ''' </summary>
+    ''' <param name="phase">阶段标识</param>
+    ''' <param name="label">阶段的中文显示名</param>
+    Public Sub PushStreamBegin(phase As String, Optional label As String = Nothing)
+        Call PostMessage(New With {
+            .action = "llm_stream",
+            .mode = "begin",
+            .phase = phase,
+            .label = label
+        })
+    End Sub
+
+    ''' <summary>
+    ''' 把大语言模型输出的一个 token 文本直接推送到网页端。
+    ''' 收到即发，宿主侧不做任何缓冲或者攒批处理，保证网页端看到的内容完全是实时的。
+    ''' </summary>
+    ''' <param name="phase">阶段标识</param>
+    ''' <param name="kind">内容类型：<c>think</c> 为思考过程，<c>output</c> 为正文输出</param>
+    ''' <param name="text">本次收到的 token 文本</param>
+    Public Sub PushStreamToken(phase As String, kind As String, text As String)
+        Call PostMessage(New With {
+            .action = "llm_stream",
+            .mode = "append",
+            .phase = phase,
+            .kind = kind,
+            .text = text
+        })
+    End Sub
+
+    ''' <summary>
+    ''' 通知网页：当前阶段的流式输出已经结束
+    ''' </summary>
+    ''' <param name="phase">阶段标识</param>
+    ''' <param name="errorText">这一阶段发生异常时传入的错误文本</param>
+    Public Sub PushStreamEnd(phase As String, Optional errorText As String = Nothing)
+        Call PostMessage(New With {
+            .action = "llm_stream",
+            .mode = "end",
+            .phase = phase,
+            .error = errorText
+        })
+    End Sub
+
+    ''' <summary>
     ''' 在当前页面之中异步执行一段 JavaScript 代码，执行失败的时候静默忽略
     ''' </summary>
     ''' <param name="script"></param>
