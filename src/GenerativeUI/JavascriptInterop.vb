@@ -72,6 +72,20 @@ Public Class JavascriptInterop
     ''' if (!result.ok) { throw new Error(result.error); }
     ''' </example>
     Public Async Function CallHost(command As String, payload As String) As Task(Of String)
+        Dim name As String = If(command, "").Trim().ToLower()
+
+        ' 框架内置的自检命令：全部走 callHost 这个带参数的入口，
+        ' 避免在 COM 表面之上再暴露无参方法（无参方法在 WebView2 的异步代理之上
+        ' 可能被当成属性，调用时报 “unable to call method on non-function”）
+        Select Case name
+            Case "ping", "__ping__"
+                Return PingInfo()
+            Case "version", "__version__"
+                Return Version()
+            Case "get_commands", "__commands__", "commands"
+                Return GetCommands()
+        End Select
+
         Dim cmd As HostCommand = registry.Find(command)
         Dim args As String = If(payload, "{}")
 
@@ -99,9 +113,10 @@ Public Class JavascriptInterop
 
     ''' <summary>
     ''' 以 json 数组的形式返回当前所有已经注册了的宿主命令的元数据信息，
-    ''' 网页中的 JavaScript 代码可以通过这个函数做能力探测。
+    ''' 网页中的 JavaScript 代码可以通过 callHost('get_commands') 做能力探测。
     ''' </summary>
     ''' <returns></returns>
+    <ComVisible(False)>
     Public Function GetCommands() As String
         Return registry.GetJson()
     End Function
@@ -115,21 +130,21 @@ Public Class JavascriptInterop
     End Sub
 
     ''' <summary>
-    ''' 宿主对象的版本号，网页侧可以调用这个函数判断宿主对象是否已经成功注入
+    ''' 宿主对象的版本号，网页侧可以通过 callHost('version') 获取
     ''' </summary>
     ''' <returns></returns>
+    <ComVisible(False)>
     Public Function Version() As String
         Return "GenerativeUI/1.0"
     End Function
 
     ''' <summary>
-    ''' 连通性自检：网页侧调用这个函数可以确认宿主对象的方法分发是否正常，
+    ''' 连通性自检信息，网页侧通过 callHost('ping') 获取，
     ''' 返回值形如 <c>GenerativeUI/1.0 (6 commands)</c>。
-    ''' 当 COM 分发出问题（例如 DISP_E_UNKNOWNNAME）时这个调用同样会失败，
-    ''' 因此可以据此把「宿主对象没注入」与「某个命令没注册」两种情况区分开来。
     ''' </summary>
     ''' <returns></returns>
-    Public Function Ping() As String
+    <ComVisible(False)>
+    Public Function PingInfo() As String
         Return $"{Version()} ({registry.Names.Length} commands)"
     End Function
 

@@ -306,20 +306,15 @@
             box.classList.add('gu-fade-up');
         },
 
-        /* 连通性自检：确认宿主对象已经成功注入并且方法分发正常 */
+        /* 连通性自检：确认宿主对象已经成功注入并且方法分发正常。
+           走 callHost 这个带参数的入口，不依赖任何无参的 COM 方法。 */
         ping: function () {
-            return bindHost().then(function (binding) {
-                GenUI.host = binding.raw;
-                GenUI.hostKind = binding.kind;
+            return GenUI.call('ping', {});
+        },
 
-                var fn = binding.raw ? binding.raw.ping : null;
-
-                if (typeof fn !== 'function') {
-                    return binding.kind + ' (ping 不可用)';
-                }
-
-                return Promise.resolve(fn.call(binding.raw));
-            });
+        /* 当前宿主对象的绑定方式，用于排查宿主注入问题 */
+        hostInfo: function () {
+            return GenUI.hostKind || '(未绑定)';
         },
 
         /* 打开一个文件对话框选择 R 脚本，并触发后续的分析与界面生成流程 */

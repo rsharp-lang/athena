@@ -225,18 +225,21 @@
     GenUI.status('宿主对象不可用: ' + (err && err.message ? err.message : String(err)), 'error');
   }
 
-  GenUI.ping()
-    .then(function (v) {
-      document.getElementById('chip-host').textContent = v || 'host';
-      return GenUI.call('get_context', {});
-    })
+  /* 先走真正的功能调用，ping 只作为辅助诊断，失败不影响主流程 */
+  GenUI.call('get_context', {})
     .then(function (ctx) {
+      document.getElementById('chip-host').textContent = GenUI.hostInfo();
       if (!ctx) return;
       document.getElementById('chip-model').textContent = ctx.model || '—';
       document.getElementById('chip-r').textContent = ctx.rscript ? 'Rscript' : '不可用';
       if (ctx.script) GenUI.status('当前脚本: ' + ctx.script, 'info');
     })
-    .catch(fail);
+    .catch(fail)
+    .then(function () {
+      return GenUI.ping().then(function (v) {
+        document.getElementById('chip-host').textContent = v;
+      }, function () { });
+    });
 </script>
 </body>
 </html>
