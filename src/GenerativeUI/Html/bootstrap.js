@@ -10,6 +10,19 @@
     /* LLM 流式输出的累计状态 */
     var streamChars = { think: 0, output: 0 };
     var streamPhase = '';
+    var scrollQueued = false;
+
+    /* 把滚动条的更新合并到下一帧，token 直发但不会每 token 都触发一次重排 */
+    function scrollToBottom(el) {
+        if (scrollQueued) return;
+
+        scrollQueued = true;
+
+        (window.requestAnimationFrame || function (fn) { setTimeout(fn, 16); })(function () {
+            scrollQueued = false;
+            el.scrollTop = el.scrollHeight;
+        });
+    }
 
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -372,6 +385,7 @@
             streamChars[isThink ? 'think' : 'output'] += text.length;
 
             if (el) {
+                /* 每个 token 到达就直接追加，不做任何缓存 */
                 el.textContent += text;
 
                 /* 只保留末尾的一段，避免长 HTML 把 DOM 撑爆 */
@@ -379,7 +393,8 @@
                     el.textContent = '…（前面内容已折叠）\n' + el.textContent.slice(-16000);
                 }
 
-                el.scrollTop = el.scrollHeight;
+                /* 滚动会触发重排，合并到每帧执行一次，避免高频 token 拖慢渲染 */
+                scrollToBottom(el);
             }
 
             if (phaseEl && d.phase && d.phase !== streamPhase) {
