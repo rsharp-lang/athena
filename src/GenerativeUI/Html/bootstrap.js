@@ -37,13 +37,16 @@
         call: function (cmd, payload) {
             var json = '{}';
             var pending;
+            var host = hostObject();
+
+            console.log(host);
 
             try { json = JSON.stringify(payload === undefined ? {} : (payload || {})); }
             catch (e) { json = '{}'; }
 
             /* 宿主对象不可用时统一返回 rejected promise，避免同步异常打断页面脚本 */
             try {
-                pending = Promise.resolve(hostObject().invoke(cmd, json));
+                pending = Promise.resolve(host.invoke(cmd, json));
             } catch (e) {
                 return Promise.reject(e);
             }
@@ -204,6 +207,8 @@
 
     GenUI.host = hostObject;
     window.GenUI = GenUI;
+
+    console.log(GenUI);
 
     /* 宿主可以直接调用这个全局函数把运行状态推送到页面上 */
     window.genui_status = function (msg, level) { return GenUI.status(msg, level); };
