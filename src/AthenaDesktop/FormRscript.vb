@@ -236,7 +236,7 @@ Public Class FormRscript
 
             Call engine.ShowLoading(
                 title:="正在构建操作界面",
-                message:=$"大语言模型正在分析脚本 {Path.GetFileName(path)}",
+                message:=$"大语言模型正在分析脚本 {Path.GetFileName(target)}",
                 steps:=New String() {
                     "读取脚本源代码",
                     "AI 归纳脚本之中可以调整的运行参数",
@@ -250,7 +250,7 @@ Public Class FormRscript
             Call engine.PushStatus("正在读取脚本源代码…")
             Call engine.PushStatus($"正在让模型 {analyzerLlm.Model} 归纳可调参数…")
 
-            parameters = Await analyzer.Analyze(path)
+            parameters = Await analyzer.Analyze(target)
 
             If parameters.Length = 0 Then
                 Call engine.PushStatus("没有从脚本之中归纳出任何可调参数，将使用一个通用的参数集", "warn")
@@ -265,7 +265,7 @@ Public Class FormRscript
 
             Call engine.PushStatus($"正在让模型 {uiLlm.Model} 编写参数操作界面…")
 
-            Dim ok As Boolean = Await engine.Render(BuildUIRequest(path), errorTitle:="生成式界面构建失败")
+            Dim ok As Boolean = Await engine.Render(BuildUIRequest(target), errorTitle:="生成式界面构建失败")
 
             If ok Then
                 Call engine.PushStatus("操作界面已经生成完毕，请调整参数之后点击「执行分析」", "success")
@@ -288,12 +288,12 @@ Public Class FormRscript
     ''' <summary>
     ''' 构造交给大语言模型的界面生成需求描述
     ''' </summary>
-    Private Function BuildUIRequest(path As String) As String
+    Private Function BuildUIRequest(scriptPath As String) As String
         Dim sb As New StringBuilder
         Dim code As String = ""
 
         Try
-            code = File.ReadAllText(path, Encoding.UTF8)
+            code = File.ReadAllText(scriptPath, Encoding.UTF8)
         Catch ex As Exception
             code = "# (脚本源代码读取失败: " & ex.Message & ")"
         End Try
@@ -308,7 +308,7 @@ Public Class FormRscript
 
         Call sb.AppendLine("请为下面这个 GNU R 脚本编写一个「参数调整 + 运行 + 结果展示」的单文件 HTML 操作界面。")
         Call sb.AppendLine()
-        Call sb.AppendLine($"脚本文件名: {Path.GetFileName(path)}")
+        Call sb.AppendLine($"脚本文件名: {Path.GetFileName(scriptPath)}")
         Call sb.AppendLine()
         Call sb.AppendLine("## 脚本源代码")
         Call sb.AppendLine("```r")

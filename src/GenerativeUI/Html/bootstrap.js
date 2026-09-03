@@ -17,10 +17,21 @@
         return n;
     }
 
+    /* 取得注入进来的宿主对象：优先使用 window.host，
+       其次回退到 chrome.webview.hostObjects.host 异步代理 */
+    function hostObject() {
+        if (window.host) return window.host;
+        if (window.chrome && window.chrome.webview && window.chrome.webview.hostObjects) {
+            return window.chrome.webview.hostObjects.host;
+        }
+        throw new Error('宿主对象 window.host 不可用：当前页面并没有运行在 WebView2 环境之中');
+    }
+
     var GenUI = {
         version: '1.0',
         state: state,
         params: state.params || [],
+        host: null,
 
         /* 调用宿主命令；payload 为普通对象，返回值是宿主回传的 data 字段 */
         call: function (cmd, payload) {
@@ -28,7 +39,7 @@
             try { json = JSON.stringify(payload === undefined ? {} : (payload || {})); }
             catch (e) { json = '{}'; }
 
-            return Promise.resolve(window.host.invoke(cmd, json)).then(function (text) {
+            return Promise.resolve(hostObject().invoke(cmd, json)).then(function (text) {
                 var r;
                 try { r = JSON.parse(text); }
                 catch (e) { throw new Error('宿主返回的不是合法的 JSON: ' + String(text).slice(0, 200)); }
@@ -182,7 +193,11 @@
         qsa: qsa
     };
 
+    GenUI.host = hostObject;
     window.GenUI = GenUI;
+
+    /* 宿主可以直接调用这个全局函数把运行状态推送到页面上 */
+    window.genui_status = function (msg, level) { return GenUI.status(msg, level); };
 
     /* 页面通用的结果区基础样式 */
     var extra = document.createElement('style');
