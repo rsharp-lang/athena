@@ -1,3 +1,153 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style id="genui-base">
+/* GenerativeUI 基础样式：为所有动态生成的界面提供统一的设计令牌与基础组件外观 */
+:root {
+  --gu-primary: #2E86AB;
+  --gu-primary-dark: #1B5E7E;
+  --gu-accent: #00B4D8;
+  --gu-bg: #F4F7FA;
+  --gu-surface: #FFFFFF;
+  --gu-dark: #0E1B2A;
+  --gu-text: #1F2937;
+  --gu-muted: #6B7A8F;
+  --gu-ok: #16A34A;
+  --gu-err: #DC2626;
+  --gu-warn: #F59E0B;
+  --gu-info: #2563EB;
+  --gu-border: rgba(27, 94, 126, .12);
+  --gu-radius: 12px;
+  --gu-radius-sm: 8px;
+  --gu-shadow: 0 8px 24px rgba(15, 40, 66, .08);
+  --gu-shadow-lg: 0 18px 44px rgba(15, 40, 66, .16);
+  --gu-ease: cubic-bezier(.4, 0, .2, 1);
+  --gu-dur: 180ms;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--gu-bg);
+  color: var(--gu-text);
+  font-family: "Noto Sans", "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+h1 { font-size: 26px; }
+h2 { font-size: 20px; }
+h3 { font-size: 17px; font-weight: 600; }
+
+p { margin: 0 0 8px 0; }
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: 14px;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--gu-radius-sm);
+  padding: 9px 18px;
+  font-weight: 600;
+  transition: transform var(--gu-dur) var(--gu-ease), box-shadow var(--gu-dur) var(--gu-ease), background var(--gu-dur) var(--gu-ease);
+}
+
+button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15, 40, 66, .16); }
+button:active { transform: translateY(0); }
+button:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+input[type=text], input[type=number], select, textarea {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--gu-border);
+  border-radius: var(--gu-radius-sm);
+  background: var(--gu-surface);
+  outline: none;
+  transition: border-color var(--gu-dur) var(--gu-ease), box-shadow var(--gu-dur) var(--gu-ease);
+}
+
+input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus {
+  border-color: var(--gu-primary);
+  box-shadow: 0 0 0 3px rgba(46, 134, 171, .16);
+}
+
+input[type=color] {
+  width: 46px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--gu-border);
+  border-radius: var(--gu-radius-sm);
+  background: var(--gu-surface);
+  cursor: pointer;
+}
+
+input[type=range] { width: 100%; accent-color: var(--gu-primary); }
+
+.card {
+  background: var(--gu-surface);
+  border: 1px solid var(--gu-border);
+  border-radius: var(--gu-radius);
+  box-shadow: var(--gu-shadow);
+  padding: 18px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gu-primary) 0%, var(--gu-primary-dark) 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(27, 94, 126, .28);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gu-primary-dark);
+  border: 1px solid var(--gu-border);
+}
+
+.muted { color: var(--gu-muted); }
+
+.genui-status {
+  color: var(--gu-muted);
+  font-size: 13px;
+  min-height: 20px;
+}
+
+.genui-status[data-level="error"] { color: var(--gu-err); }
+.genui-status[data-level="warn"] { color: var(--gu-warn); }
+.genui-status[data-level="success"] { color: var(--gu-ok); }
+.genui-status[data-level="info"] { color: var(--gu-primary-dark); }
+
+@keyframes gu-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gu-fade-up { animation: gu-fade-up 240ms var(--gu-ease) both; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(27, 94, 126, .22); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(27, 94, 126, .38); }
+
+</style>
+<script id="genui-boot">
 /* GenerativeUI 引导脚本：注入到每一个动态生成的页面之中，
    为页面内的 JavaScript 代码提供调用宿主能力的统一门面 window.GenUI */
 (function () {
@@ -36,19 +186,10 @@
         /* 调用宿主命令；payload 为普通对象，返回值是宿主回传的 data 字段 */
         call: function (cmd, payload) {
             var json = '{}';
-            var pending;
-
             try { json = JSON.stringify(payload === undefined ? {} : (payload || {})); }
             catch (e) { json = '{}'; }
 
-            /* 宿主对象不可用时统一返回 rejected promise，避免同步异常打断页面脚本 */
-            try {
-                pending = Promise.resolve(hostObject().invoke(cmd, json));
-            } catch (e) {
-                return Promise.reject(e);
-            }
-
-            return pending.then(function (text) {
+            return Promise.resolve(hostObject().invoke(cmd, json)).then(function (text) {
                 var r;
                 try { r = JSON.parse(text); }
                 catch (e) { throw new Error('宿主返回的不是合法的 JSON: ' + String(text).slice(0, 200)); }
@@ -238,3 +379,100 @@
         });
     }
 })();
+
+</script><style>.gu-figure-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;}.gu-figure{margin:0;background:#fff;border:1px solid var(--gu-border);border-radius:var(--gu-radius);overflow:hidden;box-shadow:var(--gu-shadow);transition:transform var(--gu-dur) var(--gu-ease),box-shadow var(--gu-dur) var(--gu-ease);}.gu-figure:hover{transform:translateY(-3px);box-shadow:var(--gu-shadow-lg);}.gu-figure-frame{background:linear-gradient(135deg,#0E1B2A,#123049);padding:8px;}.gu-figure img{display:block;width:100%;height:auto;cursor:zoom-in;}.gu-figure-caption{padding:10px 12px;font-size:13px;color:var(--gu-muted);border-top:1px solid var(--gu-border);}.gu-table-wrap{margin:16px 0;background:#fff;border:1px solid var(--gu-border);border-radius:var(--gu-radius);overflow:auto;max-height:420px;box-shadow:var(--gu-shadow);}.gu-table-title{padding:10px 14px;font-weight:600;border-bottom:1px solid var(--gu-border);position:sticky;top:0;background:#fff;z-index:2;}.gu-table{border-collapse:collapse;width:100%;font-size:13px;}.gu-table th,.gu-table td{padding:7px 12px;text-align:left;white-space:nowrap;}.gu-table thead th{background:#F4F7FA;color:var(--gu-primary-dark);position:sticky;top:41px;z-index:1;}.gu-table tbody tr:nth-child(even){background:#FAFCFD;}.gu-table tbody tr:hover{background:rgba(0,180,216,.08);}.gu-text-result{margin:16px 0;background:#fff;border:1px solid var(--gu-border);border-radius:var(--gu-radius);box-shadow:var(--gu-shadow);overflow:hidden;}.gu-text-title{padding:10px 14px;font-weight:600;border-bottom:1px solid var(--gu-border);}.gu-pre{margin:0;padding:12px 14px;font-family:Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-all;max-height:420px;overflow:auto;color:#334155;}</style>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>生成式界面构建失败</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(820px 480px at 8% -8%, rgba(220, 38, 38, .20), transparent 60%),
+      radial-gradient(760px 460px at 100% 108%, rgba(46, 134, 171, .26), transparent 62%),
+      linear-gradient(160deg, #0E1B2A 0%, #14283A 55%, #0B1522 100%);
+    color: #EAF4FA;
+    font-family: "Noto Sans", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  .panel {
+    width: min(660px, 92vw);
+    padding: 30px 32px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .14);
+    box-shadow: 0 24px 60px rgba(3, 12, 22, .48);
+    backdrop-filter: blur(18px);
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: rgba(220, 38, 38, .18);
+    border: 1px solid rgba(220, 38, 38, .38);
+    color: #FCA5A5;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  h1 { font-size: 24px; margin: 0 0 10px 0; }
+  .msg { color: rgba(234, 244, 250, .84); font-size: 14px; margin: 0 0 16px 0; }
+  pre {
+    margin: 0 0 20px 0;
+    padding: 13px 15px;
+    max-height: 260px;
+    overflow: auto;
+    border-radius: 12px;
+    background: rgba(3, 12, 22, .52);
+    border: 1px solid rgba(255, 255, 255, .09);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #FCA5A5;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 180ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1);
+  }
+  button:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(3, 12, 22, .42); }
+  .primary { background: linear-gradient(135deg, #2E86AB, #1B5E7E); color: #fff; }
+  .ghost { background: rgba(255, 255, 255, .09); color: #EAF4FA; border: 1px solid rgba(255, 255, 255, .16); }
+  .status { margin: 14px 0 0 0; min-height: 20px; font-size: 13px; color: #8FE1F5; }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <div class="badge">● 生成式界面构建失败</div>
+    <h1>生成式界面构建失败</h1>
+    <p class="msg">模型没有返回可用的 HTML</p>
+    <pre>detail text</pre>
+    <div class="actions">
+      <button class="primary" onclick="retry()">重新选择脚本并重试</button>
+      <button class="ghost" onclick="demo()">载入 Iris 示例脚本</button>
+    </div>
+    <p class="status genui-status" data-genui-status="1"></p>
+  </div>
+<script>
+  function guard(promise) {
+    GenUI.status('正在处理…', 'info');
+    promise.then(function () { }).catch(function (err) { GenUI.status(err.message || String(err), 'error'); });
+  }
+  function retry() { guard(GenUI.call('open_rscript', {})); }
+  function demo() { guard(GenUI.call('load_demo', {})); }
+</script>
+
+</body></html>
