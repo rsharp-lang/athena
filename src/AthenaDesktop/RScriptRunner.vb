@@ -1,10 +1,10 @@
 Imports System.Diagnostics
-Imports System.IO
 Imports System.Text
 Imports System.Text.Json.Serialization
 Imports System.Text.RegularExpressions
 Imports System.Threading.Tasks
 Imports Microsoft.VisualBasic.FileIO
+Imports SysIO = System.IO
 
 ''' <summary>
 ''' 一张图片形式的运行结果
@@ -123,7 +123,7 @@ Public Class RScriptRunner
     ''' </summary>
     ''' <returns></returns>
     Public Property WorkspaceRoot As String =
-        Path.Combine(Path.GetTempPath(), "athena_rscript_runs")
+        SysIO.Path.Combine(SysIO.Path.GetTempPath(), "athena_rscript_runs")
 
     Sub New(Optional rscript As String = Nothing)
         If String.IsNullOrWhiteSpace(rscript) Then
@@ -163,11 +163,11 @@ Public Class RScriptRunner
             .texts = New ResultText() {}
         }
 
-        If Not File.Exists(scriptFile) Then
+        If String.IsNullOrWhiteSpace(scriptFile) OrElse Not SysIO.File.Exists(scriptFile) Then
             result.errorMessage = $"目标 R 脚本文件不存在: {scriptFile}"
             Return result
         End If
-        If Not File.Exists(rscript) Then
+        If Not SysIO.File.Exists(rscript) Then
             result.errorMessage = $"没有找到 GNU R 的 Rscript 可执行程序: {rscript}"
             Return result
         End If
@@ -179,14 +179,14 @@ Public Class RScriptRunner
         result.command = $"""{rscript}"" {cli}"
 
         Try
-            Directory.CreateDirectory(outDir)
+            SysIO.Directory.CreateDirectory(outDir)
         Catch ex As Exception
             result.errorMessage = $"无法创建结果输出目录 '{outDir}': {ex.Message}"
             Return result
         End Try
 
         If Not onLog Is Nothing Then
-            Call onLog($"正在启动 GNU R: {Path.GetFileName(scriptFile)}")
+            Call onLog($"正在启动 GNU R: {SysIO.Path.GetFileName(scriptFile)}")
         End If
 
         Dim psi As New ProcessStartInfo(rscript) With {
@@ -195,7 +195,7 @@ Public Class RScriptRunner
             .RedirectStandardOutput = True,
             .RedirectStandardError = True,
             .RedirectStandardInput = False,
-            .WorkingDirectory = Path.GetDirectoryName(scriptFile),
+            .WorkingDirectory = SysIO.Path.GetDirectoryName(scriptFile),
             .StandardOutputEncoding = Encoding.UTF8,
             .StandardErrorEncoding = Encoding.UTF8
         }
@@ -283,7 +283,9 @@ Public Class RScriptRunner
         End If
 
         If String.IsNullOrWhiteSpace(dir) Then
-            dir = Path.Combine(WorkspaceRoot, DateTime.Now.ToString("yyyyMMdd_HHmmss") & "_" & Guid.NewGuid().ToString("N").Substring(0, 8))
+            dir = SysIO.Path.Combine(
+                WorkspaceRoot,
+                DateTime.Now.ToString("yyyyMMdd_HHmmss") & "_" & Guid.NewGuid().ToString("N").Substring(0, 8))
         End If
 
         Return dir.Trim().Trim(""""c)
@@ -333,7 +335,7 @@ Public Class RScriptRunner
         Dim files As String()
 
         Try
-            files = Directory.GetFiles(outDir)
+            files = SysIO.Directory.GetFiles(outDir)
         Catch ex As Exception
             result.errorMessage = If(result.errorMessage, "") & $" 无法读取结果目录: {ex.Message}"
             Return
@@ -345,20 +347,20 @@ Public Class RScriptRunner
 
         Array.Sort(files, StringComparer.OrdinalIgnoreCase)
 
-        For Each file As String In files
-            Dim ext As String = Path.GetExtension(file).ToLower()
-            Dim name As String = Path.GetFileName(file)
-            Dim title As String = Prettify(Path.GetFileNameWithoutExtension(file))
+        For Each filePath As String In files
+            Dim ext As String = SysIO.Path.GetExtension(filePath).ToLower()
+            Dim name As String = SysIO.Path.GetFileName(filePath)
+            Dim title As String = Prettify(SysIO.Path.GetFileNameWithoutExtension(filePath))
 
             Select Case ext
                 Case ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp"
-                    Dim img As ResultImage = ReadImage(file, ext, name, title)
+                    Dim img As ResultImage = ReadImage(filePath, ext, name, title)
 
                     If Not img Is Nothing AndAlso images.Count < MaxImageCount Then
                         Call images.Add(img)
                     End If
                 Case ".svg"
-                    Dim svg As String = TryReadText(file)
+                    Dim svg As String = TryReadText(filePath)
 
                     If Not svg Is Nothing Then
                         Call images.Add(New ResultImage With {
@@ -369,11 +371,11 @@ Public Class RScriptRunner
                         })
                     End If
                 Case ".csv"
-                    Call tables.Add(ReadTable(file, name, title, ","c))
+                    Call tables.Add(ReadTable(filePath, name, title, ","c))
                 Case ".tsv"
-                    Call tables.Add(ReadTable(file, name, title, vbTab(0)))
+                    Call tables.Add(ReadTable(filePath, name, title, vbTab(0)))
                 Case ".txt", ".log", ".out", ".md", ".json"
-                    Dim text As String = TryReadText(file)
+                    Dim text As String = TryReadText(filePath)
 
                     If Not text Is Nothing Then
                         Call texts.Add(New ResultText With {
@@ -390,9 +392,9 @@ Public Class RScriptRunner
         result.texts = texts.ToArray()
     End Sub
 
-    Private Function ReadImage(file As String, ext As String, name As String, title As String) As ResultImage
+    Private Function ReadImage(filePath As String, ext As String, name As String, title As String) As ResultImage
         Try
-            Dim info As New FileInfo(file)
+            Dim info As New SysIO.FileInfo(filePath)
 
             If info.Length <= 0 Then
                 Return Nothing
@@ -415,7 +417,7 @@ Public Class RScriptRunner
                 .name = name,
                 .title = title,
                 .bytes = info.Length,
-                .dataUri = $"data:{mime};base64," & Convert.ToBase64String(File.ReadAllBytes(file))
+                .dataUri = $"data:{mime};base64," & Convert.ToBase64String(SysIO.File.ReadAllBytes(filePath))
             }
         Catch ex As Exception
             Call App.LogException(ex)
@@ -423,7 +425,7 @@ Public Class RScriptRunner
         End Try
     End Function
 
-    Private Function ReadTable(file As String, name As String, title As String, delimiter As Char) As ResultTable
+    Private Function ReadTable(filePath As String, name As String, title As String, delimiter As Char) As ResultTable
         Dim table As New ResultTable With {
             .name = name,
             .title = title,
@@ -433,10 +435,10 @@ Public Class RScriptRunner
             .totalRows = 0
         }
 
-        Try
-            Dim rows As New List(Of String())
+        Dim rows As New List(Of String())
 
-            Using parser As New TextFieldParser(file, Encoding.UTF8)
+        Try
+            Using parser As New TextFieldParser(filePath)
                 parser.TextFieldType = FieldType.Delimited
                 parser.SetDelimiters(delimiter)
                 parser.HasFieldsEnclosedInQuotes = True
@@ -455,37 +457,37 @@ Public Class RScriptRunner
                     Call rows.Add(fields)
                 Loop
             End Using
-
-            If rows.Count > 0 Then
-                table.headers = rows(0)
-                rows.RemoveAt(0)
-            End If
-
-            table.totalRows = rows.Count
-
-            If rows.Count > MaxTableRows Then
-                rows = rows.Take(MaxTableRows).ToList()
-                table.truncated = True
-            End If
-
-            table.rows = rows.ToArray()
         Catch ex As Exception
             Call App.LogException(ex)
         End Try
 
+        If rows.Count > 0 Then
+            table.headers = rows(0)
+            rows.RemoveAt(0)
+        End If
+
+        table.totalRows = rows.Count
+
+        If rows.Count > MaxTableRows Then
+            rows = rows.Take(MaxTableRows).ToList()
+            table.truncated = True
+        End If
+
+        table.rows = rows.ToArray()
+
         Return table
     End Function
 
-    Private Shared Function TryReadText(file As String) As String
+    Private Shared Function TryReadText(filePath As String) As String
         Try
-            Return File.ReadAllText(file, Encoding.UTF8)
+            Return SysIO.File.ReadAllText(filePath, Encoding.UTF8)
         Catch ex As Exception
             Return Nothing
         End Try
     End Function
 
     ''' <summary>
-    ''' 把结果文件名转换为适合展示的中文标题：去掉排序前缀、下划线替换为空格
+    ''' 把结果文件名转换为适合展示的标题：去掉排序前缀、下划线替换为空格
     ''' </summary>
     Public Shared Function Prettify(name As String) As String
         If String.IsNullOrWhiteSpace(name) Then

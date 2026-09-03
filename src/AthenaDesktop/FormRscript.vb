@@ -116,31 +116,31 @@ Public Class FormRscript
             Workbench.DemoDirectory,
             Path.GetDirectoryName(scriptFile))
 
-        Dim path As String = Browse("GNU R 脚本文件|*.R;*.r|R 代码文件|*.r;*.R|所有文件|*.*",
-                                    isFolder:=False, initial:=initial)
+        Dim filePath As String = Browse("GNU R 脚本文件|*.R;*.r|R 代码文件|*.r;*.R|所有文件|*.*",
+                                        isFolder:=False, initial:=initial)
 
-        If String.IsNullOrEmpty(path) Then
+        If String.IsNullOrEmpty(filePath) Then
             Return Task.FromResult(HostMessage.Success(New With {.cancelled = True, .path = ""}))
         End If
 
-        Call StartPipeline(path)
+        Call StartPipeline(filePath)
 
-        Return Task.FromResult(HostMessage.Success(New With {.cancelled = False, .path = path}))
+        Return Task.FromResult(HostMessage.Success(New With {.cancelled = False, .path = filePath}))
     End Function
 
     ''' <summary>
     ''' 载入内置的 Iris 演示脚本
     ''' </summary>
     Private Function LoadDemoScript(payload As String) As Task(Of String)
-        Dim path As String = Workbench.GetDemoRScriptPath()
+        Dim filePath As String = Workbench.GetDemoRScriptPath()
 
-        If Not File.Exists(path) Then
-            Return Task.FromResult(HostMessage.Failure($"没有找到内置的演示脚本文件: {path}"))
+        If Not File.Exists(filePath) Then
+            Return Task.FromResult(HostMessage.Failure($"没有找到内置的演示脚本文件: {filePath}"))
         End If
 
-        Call StartPipeline(path)
+        Call StartPipeline(filePath)
 
-        Return Task.FromResult(HostMessage.Success(New With {.cancelled = False, .path = path}))
+        Return Task.FromResult(HostMessage.Success(New With {.cancelled = False, .path = filePath}))
     End Function
 
     Private Function BrowseFile(payload As String) As Task(Of String)
@@ -219,14 +219,14 @@ Public Class FormRscript
     ''' <summary>
     ''' 串起「分析参数 → 生成界面」的完整流程
     ''' </summary>
-    Private Async Sub StartPipeline(path As String)
+    Private Async Sub StartPipeline(target As String)
         If pipelineBusy Then
             Call engine.PushStatus("上一次构建任务还没有结束，请稍候…", "warn")
             Return
         End If
 
         pipelineBusy = True
-        scriptFile = path
+        scriptFile = target
         parameters = New ParameterDescriptor() {}
 
         Try
