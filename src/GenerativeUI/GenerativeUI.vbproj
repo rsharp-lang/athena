@@ -26,6 +26,7 @@
     <EmbeddedResource Include="Html\bootstrap.js" />
     <EmbeddedResource Include="Html\error.html" />
     <EmbeddedResource Include="Html\loading.html" />
+    <EmbeddedResource Include="Html\parameter_form.html" />
   </ItemGroup>
 
   <ItemGroup>

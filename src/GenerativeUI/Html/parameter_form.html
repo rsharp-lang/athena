@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>参数调整与执行</title>
+<style>
+  body {
+    background:
+      radial-gradient(1000px 520px at 8% -12%, rgba(0, 180, 216, .16), transparent 58%),
+      radial-gradient(820px 480px at 104% 0%, rgba(46, 134, 171, .18), transparent 60%),
+      var(--gu-bg);
+    min-height: 100vh;
+    padding-bottom: 96px;
+  }
+  .topbar {
+    background: linear-gradient(120deg, #0E1B2A 0%, #1B5E7E 58%, #2E86AB 100%);
+    color: #fff;
+    padding: 18px 28px;
+    box-shadow: 0 10px 30px rgba(14, 27, 42, .28);
+  }
+  .topbar .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .topbar h1 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: .4px; }
+  .topbar .sub { color: rgba(255, 255, 255, .72); font-size: 13px; margin: 4px 0 0 0; }
+  .chip {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .14);
+    border: 1px solid rgba(255, 255, 255, .2);
+    font-size: 12px;
+  }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #22C55E; box-shadow: 0 0 0 4px rgba(34, 197, 94, .22);
+    display: inline-block; margin-right: 7px;
+  }
+  main { max-width: 1280px; margin: 0 auto; padding: 22px 24px 0 24px; }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .group-card {
+    background: var(--gu-surface);
+    border: 1px solid var(--gu-border);
+    border-radius: var(--gu-radius);
+    box-shadow: var(--gu-shadow);
+    padding: 16px 18px 18px 18px;
+  }
+  .group-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 700; color: var(--gu-primary-dark);
+    padding-bottom: 10px; margin-bottom: 12px;
+    border-bottom: 1px dashed var(--gu-border);
+  }
+  .group-title::before {
+    content: ""; width: 4px; height: 15px; border-radius: 3px;
+    background: linear-gradient(180deg, var(--gu-accent), var(--gu-primary));
+  }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--gu-text); margin-bottom: 5px; }
+  .field .hint { font-size: 11.5px; color: var(--gu-muted); margin-top: 4px; }
+  .inline { display: flex; gap: 8px; align-items: center; }
+  .inline input[type=text] { flex: 1; }
+  .inline button {
+    padding: 8px 12px; font-size: 12.5px; border-radius: var(--gu-radius-sm);
+    background: #EEF5F9; color: var(--gu-primary-dark); border: 1px solid var(--gu-border);
+  }
+  .switch { display: flex; align-items: center; gap: 9px; }
+  .switch input { width: 17px; height: 17px; accent-color: var(--gu-primary); }
+  .result-card {
+    background: var(--gu-surface);
+    border: 1px solid var(--gu-border);
+    border-radius: var(--gu-radius);
+    box-shadow: var(--gu-shadow);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .tabs { display: flex; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--gu-border); background: #FAFCFE; flex-wrap: wrap; }
+  .tabs button { background: transparent; color: var(--gu-muted); padding: 7px 14px; font-size: 13px; border-radius: 8px; }
+  .tabs button:hover { transform: none; box-shadow: none; background: rgba(46, 134, 171, .09); }
+  .tabs button.on { background: linear-gradient(135deg, var(--gu-primary), var(--gu-primary-dark)); color: #fff; }
+  .panel { padding: 18px; display: none; }
+  .panel.on { display: block; }
+  .empty { color: var(--gu-muted); text-align: center; padding: 40px 0; font-size: 13.5px; }
+  .metrics { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 14px; }
+  .metric { padding: 8px 14px; border-radius: 10px; background: #F4F7FA; border: 1px solid var(--gu-border); font-size: 12.5px; }
+  .metric b { color: var(--gu-primary-dark); font-size: 15px; margin-left: 6px; }
+  .log-ok { color: var(--gu-ok); }
+  .log-err { color: var(--gu-err); }
+  .actionbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 28px;
+    background: rgba(255, 255, 255, .9);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--gu-border);
+    box-shadow: 0 -8px 24px rgba(15, 40, 66, .08);
+  }
+  .actionbar .spacer { flex: 1; }
+  .btn-run {
+    background: linear-gradient(135deg, var(--gu-primary), var(--gu-primary-dark));
+    color: #fff; padding: 11px 30px; font-size: 14.5px;
+    box-shadow: 0 8px 20px rgba(27, 94, 126, .3);
+  }
+  .btn-run[disabled] { opacity: .6; }
+  .lightbox {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(6, 14, 24, .86); padding: 28px;
+  }
+  .lightbox.on { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: 0 24px 60px rgba(0, 0, 0, .5); }
+  .spinner {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, .4); border-top-color: #fff;
+    display: inline-block; vertical-align: -2px; margin-right: 8px;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="row">
+    <h1 id="page-title">分析工作台</h1>
+    <span class="chip" id="chip-model">—</span>
+    <span class="chip"><span class="dot" id="status-dot"></span><span id="status-text">就绪</span></span>
+  </div>
+  <p class="sub" id="page-sub">调整下面的参数，然后点击右下角的「执行分析」按钮</p>
+</header>
+
+<main>
+  <section id="form-area" class="form-grid"></section>
+
+  <section class="result-card">
+    <div class="tabs">
+      <button class="on" data-tab="p-images" onclick="switchTab('p-images')">结果图片</button>
+      <button data-tab="p-tables" onclick="switchTab('p-tables')">结果表格</button>
+      <button data-tab="p-texts" onclick="switchTab('p-texts')">结果文本</button>
+      <button data-tab="p-log" onclick="switchTab('p-log')">运行日志</button>
+    </div>
+    <div class="panel on" id="p-images"><div class="empty" id="images-empty">还没有运行过分析，点击「执行分析」以生成结果图片。</div><div id="result-area"></div></div>
+    <div class="panel" id="p-tables"><div class="empty">还没有运行过分析。</div><div id="tables-area"></div></div>
+    <div class="panel" id="p-texts"><div class="empty">还没有运行过分析。</div><div id="texts-area"></div></div>
+    <div class="panel" id="p-log"><div class="empty" id="log-empty">还没有运行过分析。</div><div id="log-area"></div></div>
+  </section>
+</main>
+
+<div class="actionbar">
+  <span class="genui-status" data-genui-status="1">就绪</span>
+  <span class="spacer"></span>
+  <button class="btn-ghost" onclick="resetParams()">重置为默认值</button>
+  <button class="btn-run" id="btn-run" onclick="doRun()">执行分析</button>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('on')"><img id="lightbox-img" alt=""/></div>
+
+<script>
+  var defaults = {};
+
+  function switchTab(id) {
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === id); });
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === id); });
+  }
+
+  function setStatus(text, level) {
+    GenUI.status(text, level);
+    var dot = document.getElementById('status-dot');
+    var st = document.getElementById('status-text');
+    if (st) st.textContent = text || '就绪';
+    if (dot) dot.style.background = level === 'error' ? '#DC2626' : (level === 'warn' ? '#F59E0B' : (level === 'success' ? '#22C55E' : '#00B4D8'));
+  }
+
+  function makeField(p) {
+    var wrap = document.createElement('div');
+    wrap.className = 'field';
+
+    var label = document.createElement('label');
+    label.textContent = p.label || p.name;
+    wrap.appendChild(label);
+
+    var ctl;
+
+    if (p.type === 'bool') {
+      var sw = document.createElement('div');
+      sw.className = 'switch';
+      ctl = document.createElement('input');
+      ctl.type = 'checkbox';
+      sw.appendChild(ctl);
+      var sp = document.createElement('span');
+      sp.textContent = '启用';
+      sp.style.fontSize = '13px';
+      sw.appendChild(sp);
+      wrap.appendChild(sw);
+      defaults[p.name] = String(p['default']).toLowerCase() === 'true' || p['default'] === '1';
+      ctl.checked = defaults[p.name];
+      ctl.setAttribute('data-gu-param', p.name);
+      ctl.setAttribute('data-gu-label', p.label || p.name);
+      appendHint(wrap, p);
+      return wrap;
+    }
+
+    if (p.type === 'select') {
+      ctl = document.createElement('select');
+      (p.options || []).forEach(function (o) {
+        var op = document.createElement('option');
+        op.value = o; op.textContent = o;
+        ctl.appendChild(op);
+      });
+    } else if (p.type === 'textarea') {
+      ctl = document.createElement('textarea');
+      ctl.rows = 3;
+    } else if (p.type === 'color') {
+      ctl = document.createElement('input');
+      ctl.type = 'color';
+    } else if (p.type === 'number' || p.type === 'integer') {
+      ctl = document.createElement('input');
+      ctl.type = 'number';
+      if (p.min !== null && p.min !== undefined) ctl.min = p.min;
+      if (p.max !== null && p.max !== undefined) ctl.max = p.max;
+      if (p.step !== null && p.step !== undefined) ctl.step = p.step;
+    } else {
+      ctl = document.createElement('input');
+      ctl.type = 'text';
+    }
+
+    defaults[p.name] = (p['default'] === null || p['default'] === undefined) ? '' : String(p['default']);
+
+    if (ctl.type === 'color') {
+      var box = document.createElement('div');
+      box.className = 'inline';
+      ctl.value = defaults[p.name] || '#2E86AB';
+      ctl.setAttribute('data-gu-param', p.name);
+      ctl.setAttribute('data-gu-label', p.label || p.name);
+      var hex = document.createElement('input');
+      hex.type = 'text';
+      hex.value = ctl.value;
+      hex.style.maxWidth = '120px';
+      ctl.addEventListener('input', function () { hex.value = ctl.value; });
+      hex.addEventListener('change', function () {
+        if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) ctl.value = hex.value;
+      });
+      box.appendChild(ctl);
+      box.appendChild(hex);
+      wrap.appendChild(box);
+      appendHint(wrap, p);
+      return wrap;
+    }
+
+    ctl.value = defaults[p.name];
+    ctl.setAttribute('data-gu-param', p.name);
+    ctl.setAttribute('data-gu-label', p.label || p.name);
+
+    if (p.type === 'file' || p.type === 'folder') {
+      var row = document.createElement('div');
+      row.className = 'inline';
+      row.appendChild(ctl);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '浏览';
+      btn.addEventListener('click', function () {
+        var kind = p.type === 'folder' ? 'folder' : 'file';
+        var filter = p.type === 'folder' ? '' : '数据文件|*.csv;*.txt;*.tsv;*.R|所有文件|*.*';
+        setStatus('正在打开文件对话框…', 'info');
+        GenUI.browse(kind, filter).then(function (path) {
+          if (path) { ctl.value = path; setStatus('已选择: ' + path, 'success'); }
+          else { setStatus('已取消选择', 'warn'); }
+        }).catch(function (err) { setStatus(err.message || String(err), 'error'); });
+      });
+      row.appendChild(btn);
+      wrap.appendChild(row);
+    } else {
+      wrap.appendChild(ctl);
+    }
+
+    appendHint(wrap, p);
+    return wrap;
+  }
+
+  function appendHint(wrap, p) {
+    if (p.description) {
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = p.description;
+      wrap.appendChild(hint);
+    }
+  }
+
+  function buildForm(params) {
+    var area = document.getElementById('form-area');
+    area.innerHTML = '';
+    var groups = {};
+    var order = [];
+
+    (params || []).forEach(function (p) {
+      var g = p.group || '运行参数';
+      if (!groups[g]) { groups[g] = []; order.push(g); }
+      groups[g].push(p);
+    });
+
+    order.forEach(function (g) {
+      var card = document.createElement('div');
+      card.className = 'group-card';
+      var title = document.createElement('div');
+      title.className = 'group-title';
+      title.textContent = g;
+      card.appendChild(title);
+      groups[g].forEach(function (p) { card.appendChild(makeField(p)); });
+      area.appendChild(card);
+    });
+
+    if (!order.length) {
+      area.innerHTML = '<div class="group-card"><div class="empty">没有检测到任何可调参数，可以直接执行分析。</div></div>';
+    }
+  }
+
+  function resetParams() {
+    document.querySelectorAll('[data-gu-param]').forEach(function (n) {
+      var name = n.getAttribute('data-gu-param');
+      if (n.type === 'checkbox') n.checked = !!defaults[name];
+      else n.value = defaults[name];
+    });
+    setStatus('参数已经重置为默认值', 'info');
+  }
+
+  function showLightbox(src) {
+    var box = document.getElementById('lightbox');
+    document.getElementById('lightbox-img').src = src;
+    box.classList.add('on');
+  }
+
+  function renderResult(data) {
+    document.getElementById('images-empty').style.display = (data.images && data.images.length) ? 'none' : '';
+    GenUI.renderResult('result-area', data);
+
+    document.querySelectorAll('#result-area img').forEach(function (img) {
+      img.addEventListener('click', function () { showLightbox(img.src); });
+    });
+
+    var tablesArea = document.getElementById('tables-area');
+    tablesArea.innerHTML = '';
+    (data.tables || []).forEach(function (t) { tablesArea.appendChild(GenUI.table(t)); });
+
+    var textsArea = document.getElementById('texts-area');
+    textsArea.innerHTML = '';
+    (data.texts || []).forEach(function (t) { textsArea.appendChild(GenUI.text(t)); });
+
+    var logArea = document.getElementById('log-area');
+    document.getElementById('log-empty').style.display = 'none';
+    logArea.innerHTML = '';
+
+    var metrics = document.createElement('div');
+    metrics.className = 'metrics';
+    [['退出码', data.exitCode], ['耗时', (data.elapsed_ms || 0) + ' ms'],
+     ['图片', (data.images || []).length], ['表格', (data.tables || []).length]].forEach(function (kv) {
+      var m = document.createElement('div');
+      m.className = 'metric';
+      m.innerHTML = kv[0] + '<b>' + kv[1] + '</b>';
+      metrics.appendChild(m);
+    });
+    logArea.appendChild(metrics);
+
+    if (data.command) {
+      var cmd = document.createElement('div');
+      cmd.className = 'gu-text-result';
+      cmd.innerHTML = '<div class="gu-text-title">命令行</div><pre class="gu-pre">' + escapeHtml(data.command) + '</pre>';
+      logArea.appendChild(cmd);
+    }
+    if (data.stdout) {
+      logArea.appendChild(GenUI.text({ title: '标准输出 (stdout)', text: data.stdout }));
+    }
+    if (data.stderr) {
+      var errBox = GenUI.text({ title: '标准错误 (stderr)', text: data.stderr });
+      var pre = errBox.querySelector('.gu-pre');
+      if (pre) pre.className = 'gu-pre log-err';
+      logArea.appendChild(errBox);
+    }
+    if (data.error) {
+      var box = document.createElement('div');
+      box.className = 'gu-text-result';
+      box.innerHTML = '<div class="gu-text-title" style="color:#DC2626">错误信息</div><pre class="gu-pre log-err">' + escapeHtml(data.error) + '</pre>';
+      logArea.appendChild(box);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  async function doRun() {
+    var btn = document.getElementById('btn-run');
+    btn.disabled = true;
+    var old = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span>正在分析…';
+    setStatus('正在调用 GNU R 执行脚本，请稍候…', 'info');
+
+    try {
+      var data = await GenUI.run();
+      renderResult(data);
+      if (data.success) setStatus('分析完成，共生成 ' + (data.images || []).length + ' 张图、' + (data.tables || []).length + ' 张表', 'success');
+      else setStatus('脚本运行结束但退出码非 0：' + (data.error || '请查看运行日志'), 'error');
+      switchTab('p-images');
+    } catch (err) {
+      setStatus(err.message || String(err), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = old;
+    }
+  }
+
+  (function init() {
+    buildForm(GenUI.params || []);
+    GenUI.call('get_context', {}).then(function (ctx) {
+      if (ctx && ctx.model) document.getElementById('chip-model').textContent = ctx.model;
+      if (ctx && ctx.script) {
+        document.getElementById('page-sub').textContent = '当前脚本: ' + ctx.script;
+      }
+    }).catch(function () { });
+  })();
+</script>
+</body>
+</html>

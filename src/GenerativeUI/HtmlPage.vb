@@ -198,6 +198,21 @@ Public Module HtmlPage
     End Function
 
     ''' <summary>
+    ''' 生成框架内置的参数表单页面：当大语言模型没有产出可用的 html 界面时，
+    ''' 由这个模板依据参数清单直接渲染出一个可用的参数表单与结果展示区。
+    ''' </summary>
+    ''' <param name="paramsJson">参数描述对象的 json 数组字符串</param>
+    ''' <param name="title">页面标题</param>
+    ''' <returns></returns>
+    Public Function ParameterFormPage(paramsJson As String, Optional title As String = "参数调整与执行") As String
+        Dim html As String = ReadResource("parameter_form.html")
+
+        html = html.Replace("{{title}}", WebUtility.HtmlEncode(If(title, "参数调整与执行")))
+
+        Return Normalize(html, stateJson:=If(String.IsNullOrWhiteSpace(paramsJson), "{}", $"{{""params"": {paramsJson}}}"))
+    End Function
+
+    ''' <summary>
     ''' 生成框架内置的错误重试页面
     ''' </summary>
     ''' <param name="title">错误标题</param>
