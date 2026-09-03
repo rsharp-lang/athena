@@ -42,6 +42,7 @@
     <Project Path="../../galaxy/src/Microsoft.Windows.FeatureAPI/Microsoft.Windows.FeatureAPI.vbproj">
       <Platform Solution="*|x64" Project="x64" />
     </Project>
+    <Project Path="../../galaxy/src/WebViewHelper/WebViewHelper.shproj" Id="ceb7782e-585a-48f5-95b9-4c01cead6b0c" />
   </Folder>
   <Folder Name="/llms/">
     <Project Path="../../LLMs/src/Ollama/Ollama.vbproj">
