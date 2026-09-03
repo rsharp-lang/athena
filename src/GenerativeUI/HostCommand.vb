@@ -167,7 +167,7 @@ Public Class HostCommandRegistry
     End Function
 
     Public Overrides Function ToString() As String
-        Return Names.JoinBy(", ")
+        Return String.Join(", ", Names)
     End Function
 
 End Class
