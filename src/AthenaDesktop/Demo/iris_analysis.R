@@ -92,7 +92,7 @@ if (use_svg) {
   probe <- file.path(out_dir, ".__svg_probe.svg")
   ok <- tryCatch({
     svg(probe, width = 1, height = 1)
-    dev.off()
+    invisible(capture.output(invisible(capture.output(dev.off()))))
     TRUE
   }, error = function(e) FALSE)
   if (!isTRUE(ok)) use_svg <- FALSE
@@ -249,7 +249,7 @@ if (has_species) {
   legend("bottom", inset = -0.055, legend = levels(sp), fill = species_cols,
          horiz = TRUE, bty = "n", cex = 0.9, x.intersp = 0.6)
 }
-dev.off()
+invisible(capture.output(dev.off()))
 
 # 图 2：聚类结果 -------------------------------------------------------------
 open_dev(plot_path("02_kmeans_clusters"), plot_w, plot_h)
@@ -291,7 +291,7 @@ barplot(km$withinss, names.arg = paste0("簇", seq_len(k)),
 grid(nx = NA, ny = NULL, col = "grey88", lty = 3)
 
 mtext(paste0(main_title, " — kmeans 聚类 (k = ", k, ")"), outer = TRUE, line = 0.4, font = 2, cex = 1.05)
-dev.off()
+invisible(capture.output(dev.off()))
 
 # 图 3：PCA 方差解释 ---------------------------------------------------------
 open_dev(plot_path("03_pca_variance"), plot_w, plot_h)
@@ -310,7 +310,7 @@ plot(bp, pca_var$cumulative_ratio * 100, type = "b", pch = 17, lty = 2, lwd = 2,
      col = "#0E1B2A", axes = FALSE, xlab = "", ylab = "", ylim = c(0, 105))
 axis(4, col = "#0E1B2A", col.axis = "#0E1B2A", mgp = c(2.6, 0.8, 0))
 mtext("累计方差解释比例 (%)", side = 4, line = 2.6, col = "#0E1B2A")
-dev.off()
+invisible(capture.output(dev.off()))
 
 # 图 4：PCA 得分与双标图 -----------------------------------------------------
 open_dev(plot_path("04_pca_scores"), plot_w, plot_h)
@@ -337,7 +337,7 @@ if (has_species) {
 
 biplot(pca, col = c("grey55", adjustcolor(point_color, alpha.f = point_alpha)),
        cex = 0.78, main = "PCA 双标图 (变量载荷)", xlab = "PC1", ylab = "PC2")
-dev.off()
+invisible(capture.output(dev.off()))
 
 # 图 5：线性回归拟合 ---------------------------------------------------------
 open_dev(plot_path("05_regression_fit"), plot_w, plot_h)
@@ -372,7 +372,7 @@ mtext(lm_label, side = 1, line = 3.3, cex = 0.92, col = "#1B5E7E")
 if (has_species) {
   legend("topleft", legend = levels(sp), fill = species_cols, bty = "n", cex = 0.85, inset = -0.02)
 }
-dev.off()
+invisible(capture.output(dev.off()))
 
 # 图 6：簇剖面 ---------------------------------------------------------------
 open_dev(plot_path("06_cluster_profile"), plot_w, plot_h)
@@ -385,7 +385,7 @@ grid(nx = NA, ny = NULL, col = "grey88", lty = 3)
 abline(h = 0, col = "grey40")
 legend("topright", legend = num_cols, fill = make_palette(palette_name, length(num_cols)),
        bty = "n", cex = 0.82, inset = -0.02)
-dev.off()
+invisible(capture.output(dev.off()))
 
 # ------------------------------------------------------------ 结果文件输出 ----
 cat("[6/6] 正在写出结果表格...\n")
