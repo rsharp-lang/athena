@@ -313,8 +313,13 @@ Public Class FormRscript
         Catch ex As Exception
             Call App.LogException(ex)
             Call WriteLog("生成式界面构建失败: " & ex.ToString())
+            Call streamPump.Finish(ex.Message)
             Call Webui1.SetUI(HtmlPage.ErrorPage("生成式界面构建失败", ex.Message, ex.ToString()))
         Finally
+            If Not streamPump Is Nothing Then
+                Call streamPump.Finish()
+            End If
+
             pipelineBusy = False
         End Try
     End Sub
