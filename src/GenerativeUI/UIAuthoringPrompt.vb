@@ -48,8 +48,9 @@ Public Module UIAuthoringPrompt
         Call sb.AppendLine("- `GenUI.ping()` → Promise&lt;string&gt;")
         Call sb.AppendLine("  宿主连通性自检，返回宿主对象的版本与已注册命令数量，可用于排查宿主对象是否可用。")
         Call sb.AppendLine()
-        Call sb.AppendLine("宿主对象之上**只暴露** callHost / getCommands / log / version / ping 这几个方法，")
-        Call sb.AppendLine("其中 callHost(command, payloadJson) 是调用宿主能力的唯一入口；请不要使用其它方法名（例如 invoke 是不可用的）。")
+        Call sb.AppendLine("宿主对象之上**只暴露** callHost 与 log 两个方法，其中 callHost(command, payloadJson) 是调用宿主能力的唯一入口。")
+        Call sb.AppendLine("请不要在宿主对象上使用其它任何方法名：invoke 是 COM IDispatch 的保留名，")
+        Call sb.AppendLine("ping / version / getCommands 等自检能力请通过 callHost('ping') 这样的命令形式来调用。")
         Call sb.AppendLine()
 
         If Not host Is Nothing Then

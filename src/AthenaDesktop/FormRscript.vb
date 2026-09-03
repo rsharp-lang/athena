@@ -37,6 +37,25 @@ Public Class FormRscript
     ''' </summary>
     Dim pipelineBusy As Boolean = False
 
+    ''' <summary>
+    ''' 诊断日志文件路径。WinExe 项目没有控制台，Console.WriteLine 看不到任何输出，
+    ''' 因此把网页侧的宿主调用日志与引擎状态一并落盘，方便排查生成式界面的问题。
+    ''' </summary>
+    Public Shared ReadOnly LogFile As String =
+        Path.Combine(Path.GetTempPath(), "athena_generative_ui.log")
+
+    Private Shared Sub WriteLog(ParamArray lines As String())
+        Try
+            Dim text As String = String.Join(vbLf, lines.Select(Function(s) $"[{DateTime.Now:HH:mm:ss.fff}] {s}"))
+
+            SyncLock LogFile
+                File.AppendAllText(LogFile, text & vbLf, Encoding.UTF8)
+            End SyncLock
+        Catch ex As Exception
+            ' 日志失败不能影响主流程
+        End Try
+    End Sub
+
     Private Sub FormRscript_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Text = "Athena 生成式分析工作台"
 
@@ -208,7 +227,8 @@ Public Class FormRscript
             .rscript = runner.RScriptPath,
             .rscript_exists = File.Exists(runner.RScriptPath),
             .model = If(uiLlm Is Nothing, "", uiLlm.Model),
-            .out_dir = If(lastOutDir, "")
+            .out_dir = If(lastOutDir, ""),
+            .log_file = LogFile
         }
 
         Return Task.FromResult(HostMessage.Success(ctx))
@@ -279,6 +299,7 @@ Public Class FormRscript
             End If
         Catch ex As Exception
             Call App.LogException(ex)
+            Call WriteLog("生成式界面构建失败: " & ex.ToString())
             Call Webui1.SetUI(HtmlPage.ErrorPage("生成式界面构建失败", ex.Message, ex.ToString()))
         Finally
             pipelineBusy = False
@@ -477,14 +498,17 @@ Public Class FormRscript
 
     Private Sub OnEngineStatus(message As String, level As String)
         Call Console.WriteLine($"[{level}] {message}")
+        Call WriteLog($"[{level}] {message}")
     End Sub
 
     Private Sub OnHostLog(message As String)
         Call Console.WriteLine(message)
+        Call WriteLog(message)
     End Sub
 
     Private Sub OnRunLog(message As String)
         Call engine.PushStatus(message)
+        Call WriteLog(message)
     End Sub
 
 End Class

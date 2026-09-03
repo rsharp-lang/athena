@@ -43,13 +43,12 @@
         return list.filter(function (c) { return !!c.obj; });
     }
 
-    function describe(value) {
-        if (value === undefined) return 'undefined';
-        if (value === null) return 'null';
-        var t = typeof value;
-        if (t !== 'object' && t !== 'function') return t;
-        try { return t + '(' + Object.keys(value).slice(0, 12).join(',') + ')'; }
-        catch (e) { return t; }
+    function errText(err) {
+        if (err === null || err === undefined) return 'unknown';
+        if (typeof err === 'string') return err;
+        if (err.message) return err.message;
+        if (err.number) return '0x' + (err.number >>> 0).toString(16);
+        return String(err);
     }
 
     /* 解析宿主回传的 {ok, data, error} 契约 */
@@ -82,46 +81,60 @@
         var index = 0;
         var report = [];
 
+        /* 注意：不能用 typeof fn === 'function' 来判断宿主方法是否存在。
+           WebView2 的异步代理对任意成员名都会返回一个“函数 + thenable”的混合体，
+           所以必须真的发起一次往返调用才能确认这个绑定可用。
+           另外调用时一定要用 target[METHOD](...) 这种属性访问的形式，
+           不能用 fn.call(target, ...)：代理函数靠 this 来定位宿主对象，
+           this 传错会直接得到 E_INVALIDARG (0x80070057)。 */
+        function tryTarget(cand, target, tag) {
+            var label = cand.name + '[' + tag + ']';
+            var invoke = function (name, args) {
+                return Promise.resolve(target[HOST_METHOD](name, args));
+            };
+
+            return invoke('ping', '{}').then(function (text) {
+                var r = null;
+
+                try { r = JSON.parse(text); }
+                catch (e) { throw new Error('ping 返回的不是 JSON: ' + String(text).slice(0, 120)); }
+
+                if (!r || r.ok !== true) {
+                    throw new Error((r && r.error) || 'ping 未返回 ok');
+                }
+
+                report.push(label + ' -> OK (' + r.data + ')');
+
+                GenUI.host = target;
+                GenUI.hostKind = label;
+
+                return { kind: label, raw: target, invoke: invoke };
+            }, function (err) {
+                report.push(label + ' -> ' + errText(err));
+                return null;
+            });
+        }
+
         function attempt(cand) {
-            /* 先把可能存在的 thenable 解析掉，拿到真实的对象表示 */
-            return Promise.resolve(cand.obj)
-                .catch(function () { return cand.obj; })
-                .then(function (resolved) {
-                    var targets = [];
+            return tryTarget(cand, cand.obj, 'direct').then(function (binding) {
+                if (binding) return binding;
 
-                    if (resolved && resolved !== cand.obj) targets.push(resolved);
-                    targets.push(cand.obj);
-
-                    for (var i = 0; i < targets.length; i++) {
-                        var target = targets[i];
-                        var fn = target ? target[HOST_METHOD] : null;
-
-                        report.push(cand.name + '[' + (i === 0 ? 'awaited' : 'direct') +
-                                    '] -> ' + describe(fn));
-
-                        if (typeof fn === 'function') {
-                            var binding = {
-                                kind: cand.name + (i === 0 ? '(awaited)' : '(direct)'),
-                                raw: target,
-                                call: function (cmd, json) {
-                                    return Promise.resolve(fn.call(target, cmd, json));
-                                }
-                            };
-
-                            hostBinding = binding;
-                            return binding;
+                /* 代理本身可能是 thenable，尝试先 await 一次再取成员 */
+                return Promise.resolve(cand.obj)
+                    .catch(function () { return null; })
+                    .then(function (resolved) {
+                        if (resolved && resolved !== cand.obj) {
+                            return tryTarget(cand, resolved, 'awaited');
                         }
-                    }
-
-                    return null;
-                });
+                        return null;
+                    });
+            });
         }
 
         function next() {
             if (index >= candidates.length) {
                 return Promise.reject(new Error(
-                    '宿主对象之上找不到可调用的 ' + HOST_METHOD + ' 方法。探测结果: ' +
-                    report.join(' ; ')));
+                    '没有找到可用的宿主对象绑定（已尝试: ' + report.join(' ; ') + '）'));
             }
 
             return attempt(candidates[index++]).then(function (binding) {
@@ -139,40 +152,33 @@
         host: null,
         hostKind: '',
 
-        /* 调用宿主命令；payload 为普通对象，返回值是宿主回传的 data 字段 */
+        /* 调用宿主命令；payload 为普通对象，返回值是宿主回传的 data 字段。
+           方法名是 callHost 而不是 invoke：invoke 是 COM IDispatch 自身的方法名，
+           .NET 不会把它发布到宿主对象的分发表之上。 */
         call: function (cmd, payload) {
             var json = '{}';
 
             try { json = JSON.stringify(payload === undefined ? {} : (payload || {})); }
             catch (e) { json = '{}'; }
 
-            if (hostBinding) {
-                var cached = hostBinding;
-                var direct;
-
-                try { direct = cached.call(cmd, json); }
-                catch (e) { return Promise.reject(e); }
-
-                return direct.then(function (text) { return parseHostResult(text); },
-                    function () {
-                        /* 缓存的绑定失效（例如页面被重新导航），重新探测一次 */
-                        hostBinding = null;
-                        return GenUI.call(cmd, payload);
-                    });
-            }
-
-            /* 方法名是 callHost 而不是 invoke：invoke 是 COM IDispatch 自身的方法名，
-               .NET 不会把它发布到宿主对象的分发表之上。 */
             return bindHost().then(function (binding) {
-                GenUI.host = binding.raw;
-                GenUI.hostKind = binding.kind;
+                return binding.invoke(cmd, json).then(
+                    function (text) { return parseHostResult(text); },
+                    function (err) {
+                        /* 绑定失效（例如页面被重新导航、宿主对象被替换），丢弃缓存重试一次 */
+                        hostBinding = null;
 
-                var pending;
-
-                try { pending = binding.call(cmd, json); }
-                catch (e) { return Promise.reject(e); }
-
-                return pending.then(function (text) { return parseHostResult(text); });
+                        return bindHost().then(function (fresh) {
+                            return fresh.invoke(cmd, json).then(function (text) {
+                                return parseHostResult(text);
+                            });
+                        }, function () {
+                            throw err;
+                        });
+                    });
+            }).then(function (data) {
+                GenUI.hostKind = hostBinding ? hostBinding.kind : '';
+                return data;
             });
         },
 
