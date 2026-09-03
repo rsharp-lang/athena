@@ -127,6 +127,22 @@
   }
   @keyframes slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(360%); } }
   .hidden { display: none !important; }
+  .diag {
+    margin: 0;
+    padding: 14px 16px;
+    max-height: 420px;
+    overflow: auto;
+    border-radius: 12px;
+    background: rgba(3, 12, 22, .52);
+    border: 1px solid rgba(255, 255, 255, .1);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #A5E8F7;
+    white-space: pre-wrap;
+    word-break: break-all;
+    user-select: text;
+  }
   .footer { text-align: center; color: rgba(234, 244, 250, .42); font-size: 12px; padding: 6px 0 26px 0; }
 </style>
 </head>
@@ -156,6 +172,9 @@
         </button>
         <button class="btn-ghost" id="btn-demo" onclick="loadDemo()">
           <span class="ico">🌸</span> 载入 Iris 演示脚本
+        </button>
+        <button class="btn-ghost" id="btn-diag" onclick="runDiag()">
+          <span class="ico">🔧</span> 宿主诊断
         </button>
       </div>
 
@@ -196,6 +215,16 @@
 
     <div class="footer">GenerativeUI Framework · 由 LLM 动态生成界面 · 全程离线渲染</div>
     <div class="footer" id="footer-log" style="font-size:11px"></div>
+
+    <div class="card hidden" id="diag-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <h3 style="margin:0;font-size:15px;color:#7FE3F5">宿主对象诊断报告</h3>
+        <button class="btn-ghost" style="padding:6px 14px;font-size:12px" onclick="copyDiag()">复制</button>
+        <span class="spacer" style="flex:1"></span>
+        <span style="font-size:11.5px;color:rgba(234,244,250,.55)">完整内容也已输出到 DevTools Console</span>
+      </div>
+      <pre id="diag" class="diag">（尚未运行）</pre>
+    </div>
   </div>
 
 <script>
@@ -224,6 +253,23 @@
 
   function fail(err) {
     GenUI.status('宿主对象不可用: ' + (err && err.message ? err.message : String(err)), 'error');
+    runDiag();
+  }
+
+  function runDiag() {
+    document.getElementById('diag-card').classList.remove('hidden');
+    document.getElementById('diag').textContent = '正在诊断…';
+    GenUI.debugHost().then(function (report) {
+      document.getElementById('diag').textContent = report;
+    }, function (e) {
+      document.getElementById('diag').textContent = '诊断失败: ' + e.message;
+    });
+  }
+
+  function copyDiag() {
+    var text = document.getElementById('diag').textContent;
+    if (navigator.clipboard) navigator.clipboard.writeText(text);
+    GenUI.status('诊断报告已复制到剪贴板', 'info');
   }
 
   /* 先走真正的功能调用，ping 只作为辅助诊断，失败不影响主流程 */

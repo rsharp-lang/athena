@@ -66,6 +66,8 @@
     }
 
     var hostBinding = null;
+    /* 记录 bindHost 的探测历史，供 debugHost 输出 */
+    var lastReport = [];
 
     function bindHost() {
         if (hostBinding) return Promise.resolve(hostBinding);
@@ -79,7 +81,9 @@
         }
 
         var index = 0;
-        var report = [];
+        var report = lastReport;
+
+        report.length = 0;
 
         /* 注意：不能用 typeof fn === 'function' 来判断宿主方法是否存在。
            WebView2 的异步代理对任意成员名都会返回一个“函数 + thenable”的混合体，
@@ -90,7 +94,13 @@
         function tryTarget(cand, target, tag) {
             var label = cand.name + '[' + tag + ']';
             var invoke = function (name, args) {
-                return Promise.resolve(target[HOST_METHOD](name, args));
+                /* 代理的属性访问本身也可能同步抛异常，必须包成 rejected promise，
+                   否则会把整个探测链打断 */
+                try {
+                    return Promise.resolve(target[HOST_METHOD](name, args));
+                } catch (e) {
+                    return Promise.reject(e);
+                }
             };
 
             return invoke('ping', '{}').then(function (text) {
@@ -116,7 +126,12 @@
         }
 
         function attempt(cand) {
-            return tryTarget(cand, cand.obj, 'direct').then(function (binding) {
+            var direct;
+
+            try { direct = tryTarget(cand, cand.obj, 'direct'); }
+            catch (e) { direct = Promise.resolve(null); }
+
+            return direct.then(function (binding) {
                 if (binding) return binding;
 
                 /* 代理本身可能是 thenable，尝试先 await 一次再取成员 */
@@ -128,7 +143,7 @@
                         }
                         return null;
                     });
-            });
+            }, function () { return null; });
         }
 
         function next() {
@@ -324,6 +339,113 @@
         /* 当前宿主对象的绑定方式，用于排查宿主注入问题 */
         hostInfo: function () {
             return GenUI.hostKind || '(未绑定)';
+        },
+
+        /* 完整的宿主对象诊断报告：把每一种取法、每一种调用形态都试一遍，
+           把结果同时写到 console 与返回值之中，便于排查宿主注入问题 */
+        debugHost: function () {
+            var L = [];
+
+            function push(s) { L.push(s); console.log('[GenUI.debug] ' + s); }
+
+            function safeKeys(v) {
+                if (!v) return '(none)';
+                try { return JSON.stringify(Object.getOwnPropertyNames(v)); }
+                catch (e) { return '(keys error: ' + errText(e) + ')'; }
+            }
+
+            function errDetail(e) {
+                if (e === null || e === undefined) return 'null';
+                try {
+                    return JSON.stringify({
+                        message: e.message,
+                        number: e.number !== undefined ? e.number : null,
+                        description: e.description !== undefined ? e.description : null,
+                        name: e.name,
+                        stack: e.stack ? String(e.stack).slice(0, 400) : null
+                    });
+                } catch (x) { return String(e); }
+            }
+
+            /* 试一次调用，返回描述字符串 */
+            function probe(target, label, expr) {
+                return Promise.resolve().then(function () {
+                    return expr(target);
+                }).then(function (v) {
+                    var t = (v === null || v === undefined) ? String(v) : (typeof v === 'object' ? JSON.stringify(v).slice(0, 160) : String(v).slice(0, 160));
+                    push('  [OK]   ' + label + ' => ' + t);
+                }, function (e) {
+                    push('  [FAIL] ' + label + ' => ' + errDetail(e));
+                });
+            }
+
+            push('=== GenUI 宿主对象诊断报告 ===');
+            push('bootstrap version : ' + GenUI.version);
+            push('userAgent         : ' + navigator.userAgent);
+            push('location          : ' + location.href);
+            push('已缓存的绑定       : ' + (GenUI.hostKind || '(无)'));
+
+            push('');
+            push('--- 环境探测 ---');
+            push('typeof window.chrome                        = ' + typeof window.chrome);
+            push('typeof window.chrome.webview                = ' + typeof (window.chrome && window.chrome.webview));
+            push('typeof window.chrome.webview.hostObjects    = ' + typeof (window.chrome && window.chrome.webview && window.chrome.webview.hostObjects));
+            push('typeof window.host                          = ' + typeof window.host);
+            push('window.host own property names              = ' + safeKeys(window.host));
+
+            var cw = window.chrome && window.chrome.webview ? window.chrome.webview : null;
+
+            if (cw && cw.hostObjects) {
+                push('hostObjects own property names              = ' + safeKeys(cw.hostObjects));
+                push('typeof hostObjects.host                     = ' + typeof cw.hostObjects.host);
+                push('typeof hostObjects.sync                     = ' + typeof cw.hostObjects.sync);
+                if (cw.hostObjects.sync) {
+                    push('typeof hostObjects.sync.host                = ' + typeof cw.hostObjects.sync.host);
+                }
+                push('hostObjects.host own property names         = ' + safeKeys(cw.hostObjects.host));
+            }
+
+            push('');
+            push('--- bindHost 实际尝试 ---');
+
+            var chain = Promise.resolve().then(function () {
+                hostBinding = null;
+                return bindHost().then(
+                    function (b) { push('  bindHost 成功: ' + b.kind); },
+                    function (e) { push('  bindHost 失败: ' + errDetail(e)); });
+            });
+
+            push('');
+            push('--- 调用形态探测（逐个候选、逐个参数个数）---');
+
+            hostCandidates().forEach(function (cand) {
+                var target = cand.obj;
+
+                push('候选: ' + cand.name + '  typeof=' + typeof target + '  keys=' + safeKeys(target));
+
+                chain = chain
+                    .then(function () { return probe(target, cand.name + ' :: typeof callHost', function (t) { return typeof t[HOST_METHOD]; }); })
+                    .then(function () { return probe(target, cand.name + ' :: callHost("ping","{}")   [2 参数·属性访问]', function (t) { return t[HOST_METHOD]('ping', '{}'); }); })
+                    .then(function () { return probe(target, cand.name + ' :: fn.call(t,"ping","{}")  [2 参数·显式this]', function (t) { var fn = t[HOST_METHOD]; return fn.call(t, 'ping', '{}'); }); })
+                    .then(function () { return probe(target, cand.name + ' :: callHost("ping")        [1 参数]', function (t) { return t[HOST_METHOD]('ping'); }); })
+                    .then(function () { return probe(target, cand.name + ' :: callHost()              [0 参数]', function (t) { return t[HOST_METHOD](); }); })
+                    .then(function () { return probe(target, cand.name + ' :: log("probe")            [1 参数]', function (t) { return t.log('probe'); }); });
+            });
+
+            return chain.then(function () {
+                push('');
+                push('--- bindHost 探测历史 ---');
+                push(lastReport.join('\n'));
+                push('=== 报告结束 ===');
+
+                /* 同时回传给宿主，落盘到诊断日志文件 */
+                try {
+                    var h = hostBinding ? hostBinding.raw : (window.host || (cw && cw.hostObjects ? cw.hostObjects.host : null));
+                    if (h && typeof h.log === 'function') h.log('GenUI.debugHost:\n' + L.join('\n'));
+                } catch (e) { /* 宿主不可用时忽略 */ }
+
+                return L.join('\n');
+            });
         },
 
         /* 打开一个文件对话框选择 R 脚本，并触发后续的分析与界面生成流程 */
