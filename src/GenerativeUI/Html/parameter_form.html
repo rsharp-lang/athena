@@ -420,7 +420,9 @@
       if (ctx && ctx.script) {
         document.getElementById('page-sub').textContent = '当前脚本: ' + ctx.script;
       }
-    }).catch(function () { });
+    }).catch(function (err) {
+      setStatus('宿主对象不可用: ' + (err && err.message ? err.message : String(err)), 'error');
+    });
   })();
 </script>
 </body>
