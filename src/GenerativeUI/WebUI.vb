@@ -1,8 +1,15 @@
 ﻿Imports Microsoft.Web.WebView2.Core
+Imports Ollama
 
 Public Class WebUI
 
     Dim js As JavascriptInterop
+    Dim llm As LLMClient
+
+    Public Function SetLLM(llm As LLMClient) As WebUI
+        Me.llm = llm
+        Return Me
+    End Function
 
     Private Async Sub WebUI_Load(sender As Object, e As EventArgs) Handles Me.Load
         js = New JavascriptInterop(host:=Me)
