@@ -40,6 +40,8 @@
     <Content Include="Demo\iris_analysis.R">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Remove="Html\**\*.*" />
+    <EmbeddedResource Include="Html\launcher.html" />
   </ItemGroup>
 
   <ItemGroup>

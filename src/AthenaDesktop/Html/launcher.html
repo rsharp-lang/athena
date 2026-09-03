@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Athena 生成式分析工作台</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(1100px 620px at 6% -14%, rgba(0, 180, 216, .34), transparent 58%),
+      radial-gradient(900px 540px at 106% 4%, rgba(46, 134, 171, .38), transparent 60%),
+      linear-gradient(160deg, #0E1B2A 0%, #123049 52%, #0B1522 100%);
+    color: #EAF4FA;
+    font-family: "Noto Sans", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    padding-bottom: 40px;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 18px 34px;
+    background: rgba(255, 255, 255, .05);
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    backdrop-filter: blur(14px);
+  }
+  .logo {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: linear-gradient(135deg, #00B4D8, #2E86AB 65%, #1B5E7E);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 17px; color: #fff;
+    box-shadow: 0 6px 18px rgba(0, 180, 216, .35);
+  }
+  .brand { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+  .brand small { display: block; font-size: 11.5px; font-weight: 400; color: rgba(234, 244, 250, .6); letter-spacing: .2px; }
+  .chips { margin-left: auto; display: flex; gap: 9px; flex-wrap: wrap; }
+  .chip {
+    padding: 5px 13px; border-radius: 999px; font-size: 12px;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255, 255, 255, .14);
+    color: rgba(234, 244, 250, .86);
+  }
+  .chip b { color: #7FE3F5; font-weight: 600; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 46px 30px 0 30px; }
+
+  .hero { text-align: center; margin-bottom: 34px; }
+  .hero h1 {
+    font-size: 34px; font-weight: 800; margin: 0 0 12px 0; letter-spacing: .6px;
+    background: linear-gradient(96deg, #FFFFFF 0%, #7FE3F5 52%, #2E86AB 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: rgba(234, 244, 250, .74); font-size: 15px; margin: 0 auto; max-width: 720px; line-height: 1.7; }
+
+  .card {
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 20px;
+    box-shadow: 0 24px 60px rgba(3, 12, 22, .42);
+    backdrop-filter: blur(18px);
+    padding: 30px 32px;
+    margin-bottom: 22px;
+  }
+
+  .actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  button {
+    padding: 13px 26px; border: none; border-radius: 12px;
+    font-size: 14.5px; font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 9px;
+    transition: transform 180ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1);
+  }
+  button:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(3, 12, 22, .44); }
+  button:active { transform: translateY(0); }
+  button:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-primary {
+    background: linear-gradient(135deg, #00B4D8, #2E86AB 60%, #1B5E7E);
+    color: #fff; box-shadow: 0 10px 26px rgba(0, 180, 216, .34);
+  }
+  .btn-ghost {
+    background: rgba(255, 255, 255, .09); color: #EAF4FA;
+    border: 1px solid rgba(255, 255, 255, .18);
+  }
+  .ico { font-size: 16px; }
+
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .feature {
+    padding: 20px; border-radius: 14px;
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .1);
+    transition: transform 180ms cubic-bezier(.4, 0, .2, 1), background 180ms cubic-bezier(.4, 0, .2, 1);
+  }
+  .feature:hover { transform: translateY(-4px); background: rgba(255, 255, 255, .09); }
+  .feature .fico {
+    width: 42px; height: 42px; border-radius: 12px; margin-bottom: 12px;
+    background: linear-gradient(135deg, rgba(0, 180, 216, .3), rgba(46, 134, 171, .3));
+    border: 1px solid rgba(127, 227, 245, .3);
+    display: flex; align-items: center; justify-content: center; font-size: 19px;
+  }
+  .feature h3 { margin: 0 0 7px 0; font-size: 15.5px; }
+  .feature p { margin: 0; font-size: 13px; color: rgba(234, 244, 250, .7); line-height: 1.65; }
+
+  .flow { display: flex; align-items: flex-start; gap: 0; flex-wrap: wrap; }
+  .step { flex: 1; min-width: 170px; text-align: center; position: relative; padding: 0 8px; }
+  .step .num {
+    width: 34px; height: 34px; margin: 0 auto 10px auto; border-radius: 50%;
+    background: linear-gradient(135deg, #00B4D8, #1B5E7E);
+    color: #fff; font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px rgba(0, 180, 216, .3);
+  }
+  .step .line { position: absolute; top: 17px; left: 50%; width: 100%; height: 2px; background: rgba(255, 255, 255, .14); z-index: -1; }
+  .step:last-child .line { display: none; }
+  .step h4 { margin: 0 0 5px 0; font-size: 13.5px; font-weight: 600; }
+  .step p { margin: 0; font-size: 11.5px; color: rgba(234, 244, 250, .62); }
+
+  .statusbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; border-radius: 12px;
+    background: rgba(3, 12, 22, .38);
+    border: 1px solid rgba(255, 255, 255, .09);
+    font-size: 13px; color: #8FE1F5; min-height: 22px;
+  }
+  .bar { position: relative; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; margin-top: 12px; }
+  .bar i {
+    position: absolute; inset: 0; width: 34%; border-radius: 999px;
+    background: linear-gradient(90deg, transparent, #00B4D8, #7FE3F5, transparent);
+    animation: slide 1.6s cubic-bezier(.4, 0, .2, 1) infinite;
+  }
+  @keyframes slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(360%); } }
+  .hidden { display: none !important; }
+  .footer { text-align: center; color: rgba(234, 244, 250, .42); font-size: 12px; padding: 6px 0 26px 0; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">A</div>
+    <div class="brand">Athena 生成式分析工作台
+      <small>Generative UI · WebView2 · GNU R</small>
+    </div>
+    <div class="chips">
+      <span class="chip">模型 <b id="chip-model">—</b></span>
+      <span class="chip">R 引擎 <b id="chip-r">—</b></span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>用一句话，让 AI 为你的 R 脚本生成操作界面</h1>
+      <p>选择一个 GNU R 脚本，大语言模型会自动归纳出其中可以调整的运行参数，并为这些参数编写一个可以直接操作的 HTML 界面；点击执行后由 GNU R 完成分析，结果图片与表格会自动回传到界面上。</p>
+    </div>
+
+    <div class="card">
+      <div class="actions">
+        <button class="btn-primary" id="btn-open" onclick="openScript()">
+          <span class="ico">📂</span> 打开 R 脚本
+        </button>
+        <button class="btn-ghost" id="btn-demo" onclick="loadDemo()">
+          <span class="ico">🌸</span> 载入 Iris 演示脚本
+        </button>
+      </div>
+
+      <div class="statusbar" style="margin-top:22px">
+        <span id="status" class="genui-status" data-genui-status="1">就绪：请打开一个 R 脚本开始</span>
+      </div>
+      <div class="bar hidden" id="progress"><i></i></div>
+    </div>
+
+    <div class="card">
+      <div class="features">
+        <div class="feature">
+          <div class="fico">🧠</div>
+          <h3>参数智能识别</h3>
+          <p>把脚本原文交给大语言模型，自动归纳出数据输入、输出路径、调色板、数值、词条等可调参数。</p>
+        </div>
+        <div class="feature">
+          <div class="fico">✨</div>
+          <h3>界面自动生成</h3>
+          <p>模型依据参数清单实时编写单文件 HTML 界面，通过 WebView2 直接渲染，无需重启程序。</p>
+        </div>
+        <div class="feature">
+          <div class="fico">📊</div>
+          <h3>结果可视化回传</h3>
+          <p>宿主调用 GNU R 执行脚本，把生成的图片与表格编码后回传到界面上直接查看。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flow">
+        <div class="step"><div class="line"></div><div class="num">1</div><h4>打开脚本</h4><p>通过文件对话框选择 R 脚本</p></div>
+        <div class="step"><div class="line"></div><div class="num">2</div><h4>AI 分析参数</h4><p>归纳可调的运行参数清单</p></div>
+        <div class="step"><div class="line"></div><div class="num">3</div><h4>生成操作界面</h4><p>模型编写 HTML 参数表单</p></div>
+        <div class="step"><div class="line"></div><div class="num">4</div><h4>执行并展示</h4><p>调用 R 运行并回传结果</p></div>
+      </div>
+    </div>
+
+    <div class="footer">GenerativeUI Framework · 由 LLM 动态生成界面 · 全程离线渲染</div>
+  </div>
+
+<script>
+  var running = false;
+
+  function setRunning(on) {
+    running = on;
+    document.getElementById('btn-open').disabled = on;
+    document.getElementById('btn-demo').disabled = on;
+    document.getElementById('progress').classList.toggle('hidden', !on);
+  }
+
+  function guard(promise) {
+    if (running) return;
+    setRunning(true);
+    promise.then(function () {
+      setRunning(false);
+    }).catch(function (err) {
+      setRunning(false);
+      GenUI.status(err.message || String(err), 'error');
+    });
+  }
+
+  function openScript() { guard(GenUI.call('open_rscript', {})); }
+  function loadDemo() { guard(GenUI.call('load_demo', {})); }
+
+  GenUI.call('get_context', {}).then(function (ctx) {
+    if (!ctx) return;
+    document.getElementById('chip-model').textContent = ctx.model || '—';
+    document.getElementById('chip-r').textContent = ctx.rscript ? 'Rscript' : '不可用';
+    if (ctx.script) {
+      GenUI.status('当前脚本: ' + ctx.script, 'info');
+    }
+  }).catch(function () { });
+</script>
+</body>
+</html>
