@@ -1,0 +1,157 @@
+好的，下面就是为你编写的完整 HTML 操作界面：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Iris 分析工作台</title>
+<style>
+  body { margin: 0; padding: 0 0 90px 0; font-family: "Noto Sans", sans-serif; }
+  .topbar { background: linear-gradient(120deg,#0E1B2A,#1B5E7E); color: #fff; padding: 16px 26px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(320px,1fr)); gap: 16px; }
+  .card { background: #fff; border: 1px solid var(--gu-border); border-radius: var(--gu-radius); box-shadow: var(--gu-shadow); padding: 16px 18px; }
+  .card h3 { margin: 0 0 12px 0; color: var(--gu-primary-dark); }
+  .field { margin-bottom: 12px; }
+  .field label { display:block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+  .row { display:flex; gap:8px; align-items:center; }
+  .row input[type=text] { flex:1; }
+  .row button { padding: 7px 12px; border:none; border-radius: 8px; background:#EEF5F9; color:var(--gu-primary-dark); }
+  .actionbar { position: fixed; left:0; right:0; bottom:0; display:flex; gap:12px; align-items:center; padding:14px 26px; background: rgba(255,255,255,.92); border-top: 1px solid var(--gu-border); }
+  .actionbar .spacer { flex:1; }
+  .run { background: linear-gradient(135deg,#2E86AB,#1B5E7E); color:#fff; padding: 11px 28px; border:none; border-radius: 10px; font-weight:700; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1 style="margin:0;font-size:20px">Iris 数据集分析工作台</h1>
+    <p style="margin:4px 0 0 0;opacity:.75;font-size:13px" id="sub">调整参数后点击执行分析</p>
+  </div>
+  <div class="wrap">
+    <div class="grid" id="forms"></div>
+    <div class="card" style="margin-top:16px">
+      <h3>结果图片</h3>
+      <div id="result-images"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>结果表格</h3>
+      <div id="result-tables"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>运行日志</h3>
+      <div id="result-log"></div>
+    </div>
+  </div>
+  <div class="actionbar">
+    <span class="genui-status" data-genui-status="1">就绪</span>
+    <span class="spacer"></span>
+    <button class="run" id="btn-run">执行分析</button>
+  </div>
+<script>
+  var groups = {};
+  var order = [];
+
+  (GenUI.params || []).forEach(function (p) {
+    var g = p.group || '运行参数';
+    if (!groups[g]) { groups[g] = []; order.push(g); }
+    groups[g].push(p);
+  });
+
+  function buildRow(p) {
+    var wrap = document.createElement('div');
+    wrap.className = 'field';
+    var label = document.createElement('label');
+    label.textContent = p.label || p.name;
+    wrap.appendChild(label);
+
+    var ctl;
+    if (p.type === 'bool') {
+      ctl = document.createElement('input');
+      ctl.type = 'checkbox';
+      ctl.checked = String(p['default']).toLowerCase() === 'true';
+    } else if (p.type === 'select') {
+      ctl = document.createElement('select');
+      (p.options || []).forEach(function (o) {
+        var op = document.createElement('option');
+        op.value = o; op.textContent = o; ctl.appendChild(op);
+      });
+      ctl.value = p['default'];
+    } else if (p.type === 'color') {
+      ctl = document.createElement('input');
+      ctl.type = 'color';
+      ctl.value = p['default'] || '#2E86AB';
+    } else if (p.type === 'number' || p.type === 'integer') {
+      ctl = document.createElement('input');
+      ctl.type = 'number';
+      if (p.min !== undefined) ctl.min = p.min;
+      if (p.max !== undefined) ctl.max = p.max;
+      if (p.step !== undefined) ctl.step = p.step;
+      ctl.value = p['default'];
+    } else {
+      ctl = document.createElement('input');
+      ctl.type = 'text';
+      ctl.value = p['default'] === undefined ? '' : p['default'];
+    }
+
+    ctl.setAttribute('data-gu-param', p.name);
+    ctl.setAttribute('data-gu-label', p.label || p.name);
+
+    if (p.type === 'file' || p.type === 'folder') {
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.appendChild(ctl);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '浏览';
+      btn.addEventListener('click', function () {
+        GenUI.browse(p.type === 'folder' ? 'folder' : 'file', '数据文件|*.csv;*.txt|所有文件|*.*')
+          .then(function (path) { if (path) ctl.value = path; })
+          .catch(function (e) { GenUI.status(e.message, 'error'); });
+      });
+      row.appendChild(btn);
+      wrap.appendChild(row);
+    } else {
+      wrap.appendChild(ctl);
+    }
+    return wrap;
+  }
+
+  order.forEach(function (g) {
+    var card = document.createElement('div');
+    card.className = 'card';
+    var h = document.createElement('h3');
+    h.textContent = g;
+    card.appendChild(h);
+    groups[g].forEach(function (p) { card.appendChild(buildRow(p)); });
+    document.getElementById('forms').appendChild(card);
+  });
+
+  document.getElementById('btn-run').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    var old = btn.textContent;
+    btn.textContent = '正在分析…';
+    GenUI.status('正在调用 GNU R 执行脚本…', 'info');
+    GenUI.run()
+      .then(function (data) {
+        GenUI.renderResult('result-images', data);
+        GenUI.renderResult('result-tables', { images: [], tables: data.tables, texts: [] });
+        document.getElementById('result-log').innerHTML =
+          '<pre>' + (data.command || '') + '\n\n' + (data.stdout || '') + '</pre>';
+        GenUI.status(data.success ? '分析完成' : '运行失败', data.success ? 'success' : 'error');
+      })
+      .catch(function (err) { GenUI.status(err.message || String(err), 'error'); })
+      .then(function () { btn.disabled = false; btn.textContent = old; });
+  });
+
+  GenUI.call('get_context', {}).then(function (ctx) {
+    if (ctx && ctx.model) document.getElementById('sub').textContent = '模型: ' + ctx.model;
+  }).catch(function () { });
+</script>
+</body>
+</html>
+```
+
+以上界面可以直接在 WebView2 之中渲染。
