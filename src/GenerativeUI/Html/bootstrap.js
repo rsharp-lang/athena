@@ -7,6 +7,10 @@
 
     var state = window.GENUI_STATE || {};
 
+    /* LLM 流式输出的累计状态 */
+    var streamChars = { think: 0, output: 0 };
+    var streamPhase = '';
+
     function qs(sel, root) { return (root || document).querySelector(sel); }
     function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
@@ -324,6 +328,68 @@
                 GenUI.hostKind = hostBinding ? hostBinding.kind : '';
                 return data;
             });
+        },
+
+        /* 接收宿主推送过来的 LLM 流式输出。
+           页面上只要带有下面这些标记就会自动渲染，没有标记则静默忽略：
+             [data-genui-stream-phase]   当前阶段的显示名
+             [data-genui-stream-stat]    已输出的字数统计
+             [data-genui-stream="think"] 思考过程容器
+             [data-genui-stream="output"]正文输出容器 */
+        stream: function (d) {
+            if (!d) return;
+
+            var phaseEl = qs('[data-genui-stream-phase]');
+            var statEl = qs('[data-genui-stream-stat]');
+            var thinkEl = qs('[data-genui-stream="think"]');
+            var outEl = qs('[data-genui-stream="output"]');
+
+            if (d.mode === 'begin') {
+                streamChars = { think: 0, output: 0 };
+                streamPhase = d.phase || '';
+                if (thinkEl) thinkEl.textContent = '';
+                if (outEl) outEl.textContent = '';
+                if (phaseEl && d.label) phaseEl.textContent = d.label;
+                if (statEl) statEl.textContent = '等待模型输出…';
+                return;
+            }
+
+            if (d.mode === 'end') {
+                if (statEl) {
+                    statEl.textContent = d.error
+                        ? ('已中断：' + d.error)
+                        : ('完成 · 思考 ' + streamChars.think + ' 字 · 输出 ' + streamChars.output + ' 字');
+                }
+                return;
+            }
+
+            if (d.mode !== 'append') return;
+
+            var isThink = d.kind === 'think';
+            var el = isThink ? thinkEl : outEl;
+            var text = d.text || '';
+
+            streamChars[isThink ? 'think' : 'output'] += text.length;
+
+            if (el) {
+                el.textContent += text;
+
+                /* 只保留末尾的一段，避免长 HTML 把 DOM 撑爆 */
+                if (el.textContent.length > 16000) {
+                    el.textContent = '…（前面内容已折叠）\n' + el.textContent.slice(-16000);
+                }
+
+                el.scrollTop = el.scrollHeight;
+            }
+
+            if (phaseEl && d.phase && d.phase !== streamPhase) {
+                streamPhase = d.phase;
+                if (d.label) phaseEl.textContent = d.label;
+            }
+
+            if (statEl) {
+                statEl.textContent = '思考 ' + streamChars.think + ' 字 · 输出 ' + streamChars.output + ' 字';
+            }
         },
 
         /* 更新页面上的状态文本 */
@@ -648,11 +714,14 @@
     ].join('');
     document.head.appendChild(extra);
 
-    /* 接收宿主推送过来的状态消息 */
+    /* 接收宿主推送过来的状态消息与 LLM 流式输出 */
     if (window.chrome && window.chrome.webview) {
         window.chrome.webview.addEventListener('message', function (e) {
             var d = e.data;
-            if (d && d.action === 'status') { GenUI.status(d.message, d.level); }
+
+            if (!d) return;
+            if (d.action === 'status') { GenUI.status(d.message, d.level); return; }
+            if (d.action === 'llm_stream') { GenUI.stream(d); }
         });
     }
 })();

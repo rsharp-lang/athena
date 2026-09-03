@@ -19,6 +19,10 @@ Public Class FormRscript
     Dim analyzer As RScriptAnalyzer
     Dim engine As GenerativeUIEngine
     Dim runner As RScriptRunner
+    ''' <summary>
+    ''' 把 LLM 的思考过程与输出内容实时推送到网页端的流式泵
+    ''' </summary>
+    Dim streamPump As LlmStreamPump
 
     ''' <summary>
     ''' 当前打开的 R 脚本文件路径
@@ -66,6 +70,11 @@ Public Class FormRscript
         analyzer = New RScriptAnalyzer(analyzerLlm)
         runner = New RScriptRunner()
         engine = New GenerativeUIEngine(Webui1, uiLlm)
+
+        ' 把两个客户端的输出都接到流式泵之上，网页端就能看见 AI 实时的工作过程
+        streamPump = New LlmStreamPump(Webui1) With {.FlushIntervalMs = 100}
+        Call streamPump.Attach(analyzerLlm, phase:="analyze", label:="① 归纳可调参数")
+        Call streamPump.Attach(uiLlm, phase:="design", label:="② 编写操作界面")
 
         Call RegisterHostCommands()
 
@@ -270,6 +279,8 @@ Public Class FormRscript
             Call engine.PushStatus("正在读取脚本源代码…")
             Call engine.PushStatus($"正在让模型 {analyzerLlm.Model} 归纳可调参数…")
 
+            Call streamPump.Begin("analyze", "① 归纳可调参数")
+
             parameters = Await analyzer.Analyze(target)
 
             If parameters.Length = 0 Then
@@ -284,6 +295,8 @@ Public Class FormRscript
             Await Task.Delay(300)
 
             Call engine.PushStatus($"正在让模型 {uiLlm.Model} 编写参数操作界面…")
+
+            Call streamPump.Begin("design", "② 编写操作界面")
 
             Dim ok As Boolean = Await engine.Render(BuildUIRequest(target), errorTitle:="生成式界面构建失败")
 
