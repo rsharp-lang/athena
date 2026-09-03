@@ -1,0 +1,142 @@
+/* GenerativeUI 基础样式：为所有动态生成的界面提供统一的设计令牌与基础组件外观 */
+:root {
+  --gu-primary: #2E86AB;
+  --gu-primary-dark: #1B5E7E;
+  --gu-accent: #00B4D8;
+  --gu-bg: #F4F7FA;
+  --gu-surface: #FFFFFF;
+  --gu-dark: #0E1B2A;
+  --gu-text: #1F2937;
+  --gu-muted: #6B7A8F;
+  --gu-ok: #16A34A;
+  --gu-err: #DC2626;
+  --gu-warn: #F59E0B;
+  --gu-info: #2563EB;
+  --gu-border: rgba(27, 94, 126, .12);
+  --gu-radius: 12px;
+  --gu-radius-sm: 8px;
+  --gu-shadow: 0 8px 24px rgba(15, 40, 66, .08);
+  --gu-shadow-lg: 0 18px 44px rgba(15, 40, 66, .16);
+  --gu-ease: cubic-bezier(.4, 0, .2, 1);
+  --gu-dur: 180ms;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--gu-bg);
+  color: var(--gu-text);
+  font-family: "Noto Sans", "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+h1 { font-size: 26px; }
+h2 { font-size: 20px; }
+h3 { font-size: 17px; font-weight: 600; }
+
+p { margin: 0 0 8px 0; }
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: 14px;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--gu-radius-sm);
+  padding: 9px 18px;
+  font-weight: 600;
+  transition: transform var(--gu-dur) var(--gu-ease), box-shadow var(--gu-dur) var(--gu-ease), background var(--gu-dur) var(--gu-ease);
+}
+
+button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15, 40, 66, .16); }
+button:active { transform: translateY(0); }
+button:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+input[type=text], input[type=number], select, textarea {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--gu-border);
+  border-radius: var(--gu-radius-sm);
+  background: var(--gu-surface);
+  outline: none;
+  transition: border-color var(--gu-dur) var(--gu-ease), box-shadow var(--gu-dur) var(--gu-ease);
+}
+
+input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus {
+  border-color: var(--gu-primary);
+  box-shadow: 0 0 0 3px rgba(46, 134, 171, .16);
+}
+
+input[type=color] {
+  width: 46px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--gu-border);
+  border-radius: var(--gu-radius-sm);
+  background: var(--gu-surface);
+  cursor: pointer;
+}
+
+input[type=range] { width: 100%; accent-color: var(--gu-primary); }
+
+.card {
+  background: var(--gu-surface);
+  border: 1px solid var(--gu-border);
+  border-radius: var(--gu-radius);
+  box-shadow: var(--gu-shadow);
+  padding: 18px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gu-primary) 0%, var(--gu-primary-dark) 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(27, 94, 126, .28);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gu-primary-dark);
+  border: 1px solid var(--gu-border);
+}
+
+.muted { color: var(--gu-muted); }
+
+.genui-status {
+  color: var(--gu-muted);
+  font-size: 13px;
+  min-height: 20px;
+}
+
+.genui-status[data-level="error"] { color: var(--gu-err); }
+.genui-status[data-level="warn"] { color: var(--gu-warn); }
+.genui-status[data-level="success"] { color: var(--gu-ok); }
+.genui-status[data-level="info"] { color: var(--gu-primary-dark); }
+
+@keyframes gu-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gu-fade-up { animation: gu-fade-up 240ms var(--gu-ease) both; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(27, 94, 126, .22); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(27, 94, 126, .38); }
