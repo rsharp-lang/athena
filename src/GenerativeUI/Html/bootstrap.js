@@ -151,14 +151,6 @@
         if (hostBinding) return Promise.resolve(hostBinding);
 
         var candidates = hostCandidates();
-
-        if (!candidates.length) {
-            return Promise.reject(new Error(
-                '宿主对象不可用：当前页面并没有运行在 WebView2 环境之中' +
-                '（既没有 chrome.webview.hostObjects.host，也没有 window.host）'));
-        }
-
-        var index = 0;
         var report = lastReport;
 
         report.length = 0;
@@ -224,13 +216,63 @@
             }, function () { return null; });
         }
 
+        /* 通道一：Web Message 桥（首选） */
+        function tryBridge() {
+            return function () {
+                return bridgeCall('ping', '{}', BRIDGE_PROBE_MS).then(function (text) {
+                    var r = null;
+
+                    try { r = JSON.parse(text); }
+                    catch (e) { throw new Error('ping 返回的不是 JSON: ' + String(text).slice(0, 120)); }
+
+                    if (!r || r.ok !== true) {
+                        throw new Error((r && r.error) || 'ping 未返回 ok');
+                    }
+
+                    report.push('webmessage -> OK (' + r.data + ')');
+
+                    GenUI.host = null;
+                    GenUI.hostKind = 'webmessage';
+
+                    return {
+                        kind: 'webmessage',
+                        raw: null,
+                        invoke: function (name, args) {
+                            return bridgeCall(name, args, BRIDGE_CALL_MS);
+                        }
+                    };
+                }, function (err) {
+                    report.push('webmessage -> ' + errText(err));
+                    return null;
+                });
+            };
+        }
+
+        /* 通道二：COM 宿主对象（兜底） */
+        function attemptLazy(cand) {
+            return function () { return attempt(cand); };
+        }
+
+        var steps = [];
+
+        if (hasWebView()) steps.push(tryBridge());
+        candidates.forEach(function (cand) { steps.push(attemptLazy(cand)); });
+
+        if (!steps.length) {
+            return Promise.reject(new Error(
+                '宿主对象不可用：当前页面并没有运行在 WebView2 环境之中' +
+                '（没有 chrome.webview.postMessage，也没有任何宿主对象代理）'));
+        }
+
+        var index = 0;
+
         function next() {
-            if (index >= candidates.length) {
+            if (index >= steps.length) {
                 return Promise.reject(new Error(
                     '没有找到可用的宿主对象绑定（已尝试: ' + report.join(' ; ') + '）'));
             }
 
-            return attempt(candidates[index++]).then(function (binding) {
+            return steps[index++]().then(function (binding) {
                 if (!binding) return next();
 
                 hostBinding = binding;
@@ -467,6 +509,8 @@
             push('--- 环境探测 ---');
             push('typeof window.chrome                        = ' + typeof window.chrome);
             push('typeof window.chrome.webview                = ' + typeof (window.chrome && window.chrome.webview));
+            push('hasWebView(postMessage+addEventListener)    = ' + hasWebView());
+            push('typeof window.chrome.webview.postMessage    = ' + typeof (window.chrome && window.chrome.webview && window.chrome.webview.postMessage));
             push('typeof window.chrome.webview.hostObjects    = ' + typeof (window.chrome && window.chrome.webview && window.chrome.webview.hostObjects));
             push('typeof window.host                          = ' + typeof window.host);
             push('window.host own property names              = ' + safeKeys(window.host));
@@ -491,6 +535,15 @@
                 return bindHost().then(
                     function (b) { push('  bindHost 成功: ' + b.kind); },
                     function (e) { push('  bindHost 失败: ' + errDetail(e)); });
+            });
+
+            push('');
+            push('--- Web Message 桥探测 ---');
+
+            chain = chain.then(function () {
+                return bridgeCall('ping', '{}', BRIDGE_PROBE_MS).then(
+                    function (v) { push('  [OK]   bridge ping => ' + String(v).slice(0, 160)); },
+                    function (e) { push('  [FAIL] bridge ping => ' + errDetail(e)); });
             });
 
             push('');
