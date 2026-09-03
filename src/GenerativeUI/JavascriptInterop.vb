@@ -111,6 +111,16 @@ Public Class JavascriptInterop
         Return "GenerativeUI/1.0"
     End Function
 
+    Private Shared Function Clip(text As String, Optional maxLen As Integer = 120) As String
+        If String.IsNullOrEmpty(text) Then
+            Return ""
+        ElseIf text.Length <= maxLen Then
+            Return text
+        Else
+            Return text.Substring(0, maxLen) & "..."
+        End If
+    End Function
+
     Private Sub WriteLog(message As String)
         If Not logger Is Nothing Then
             Try
