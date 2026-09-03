@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{{title}}</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(820px 480px at 8% -8%, rgba(220, 38, 38, .20), transparent 60%),
+      radial-gradient(760px 460px at 100% 108%, rgba(46, 134, 171, .26), transparent 62%),
+      linear-gradient(160deg, #0E1B2A 0%, #14283A 55%, #0B1522 100%);
+    color: #EAF4FA;
+    font-family: "Noto Sans", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  .panel {
+    width: min(660px, 92vw);
+    padding: 30px 32px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .14);
+    box-shadow: 0 24px 60px rgba(3, 12, 22, .48);
+    backdrop-filter: blur(18px);
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: rgba(220, 38, 38, .18);
+    border: 1px solid rgba(220, 38, 38, .38);
+    color: #FCA5A5;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  h1 { font-size: 24px; margin: 0 0 10px 0; }
+  .msg { color: rgba(234, 244, 250, .84); font-size: 14px; margin: 0 0 16px 0; }
+  pre {
+    margin: 0 0 20px 0;
+    padding: 13px 15px;
+    max-height: 260px;
+    overflow: auto;
+    border-radius: 12px;
+    background: rgba(3, 12, 22, .52);
+    border: 1px solid rgba(255, 255, 255, .09);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #FCA5A5;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 180ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1);
+  }
+  button:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(3, 12, 22, .42); }
+  .primary { background: linear-gradient(135deg, #2E86AB, #1B5E7E); color: #fff; }
+  .ghost { background: rgba(255, 255, 255, .09); color: #EAF4FA; border: 1px solid rgba(255, 255, 255, .16); }
+  .status { margin: 14px 0 0 0; min-height: 20px; font-size: 13px; color: #8FE1F5; }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <div class="badge">● 生成式界面构建失败</div>
+    <h1>{{title}}</h1>
+    <p class="msg">{{message}}</p>
+    <pre>{{detail}}</pre>
+    <div class="actions">
+      <button class="primary" onclick="retry()">重新选择脚本并重试</button>
+      <button class="ghost" onclick="demo()">载入 Iris 示例脚本</button>
+    </div>
+    <p class="status genui-status" data-genui-status="1"></p>
+  </div>
+<script>
+  function guard(promise) {
+    GenUI.status('正在处理…', 'info');
+    promise.then(function () { }).catch(function (err) { GenUI.status(err.message || String(err), 'error'); });
+  }
+  function retry() { guard(GenUI.call('open_rscript', {})); }
+  function demo() { guard(GenUI.call('load_demo', {})); }
+</script>
+</body>
+</html>
