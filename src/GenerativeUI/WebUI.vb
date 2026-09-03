@@ -57,6 +57,7 @@ Public Class WebUI
     ''' 是否启用 WebView2 的开发者工具（F12）
     ''' </summary>
     ''' <returns></returns>
+    <DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)>
     Public Property DeveloperTools As Boolean
         Get
             Return enableDevTools
