@@ -23,6 +23,43 @@ Public Class WebUI
     Dim webMessageHooked As Boolean = False
 
     ''' <summary>
+    ''' 最近一次页面渲染之后收集到的运行时问题
+    ''' </summary>
+    ''' <returns></returns>
+    Public ReadOnly Property PageIssues As New List(Of PageIssue)()
+
+    ''' <summary>
+    ''' 最近一次页面自检的结果
+    ''' </summary>
+    ''' <returns></returns>
+    <DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)>
+    Public Property LastHealth As PageHealth
+
+    ''' <summary>
+    ''' 页面自检结果回传的完成信号，生成式引擎通过它等待页面的体检报告
+    ''' </summary>
+    Friend HealthWaiter As TaskCompletionSource(Of PageHealth)
+
+    ''' <summary>
+    ''' 当网页回传运行时错误或者自检结果的时候触发
+    ''' </summary>
+    ''' <param name="health"></param>
+    Public Event PageDiagnostics(health As PageHealth)
+
+    ''' <summary>
+    ''' 清空上一次页面留下的问题记录，通常在重新渲染页面之前调用，
+    ''' 避免旧页面的错误被算到新页面头上。
+    ''' </summary>
+    Public Sub ResetDiagnostics()
+        SyncLock PageIssues
+            PageIssues.Clear()
+        End SyncLock
+
+        LastHealth = Nothing
+        HealthWaiter = Nothing
+    End Sub
+
+    ''' <summary>
     ''' 注入到网页之中的宿主对象，通过 <c>WebUI.Host.Commands.Register(...)</c>
     ''' 即可向网页暴露出新的宿主能力。
     ''' </summary>
@@ -264,34 +301,136 @@ Public Class WebUI
     ''' IDispatch 依赖，也不会受 AddHostObjectToScript 包装失败的影响。
     ''' </summary>
     Private Async Sub OnWebMessage(sender As Object, e As CoreWebView2WebMessageReceivedEventArgs)
-        Dim msg As HostBridgeMessage = Nothing
+        Dim root As JsonElement
 
         Try
-            msg = JsonSerializer.Deserialize(Of HostBridgeMessage)(e.WebMessageAsJson)
+            Using doc As JsonDocument = JsonDocument.Parse(e.WebMessageAsJson)
+                root = doc.RootElement.Clone()
+            End Using
         Catch ex As Exception
             Call Console.WriteLine($"无法解析网页消息: {ex.Message}")
             Return
         End Try
 
-        If msg Is Nothing OrElse String.IsNullOrEmpty(msg.action) Then
-            Return
-        End If
-
-        Select Case msg.action
+        Select Case JsonStr(root, "action")
             Case "host_call"
-                Dim result As String = Await js.CallHost(msg.command, If(msg.payload, "{}"))
+                Dim result As String = Await js.CallHost(JsonStr(root, "command"), If(JsonStr(root, "payload"), "{}"))
 
                 ' result 本身就是一段 json 文本，这里作为字符串回传，
                 ' 由网页侧再解析一次，避免 json 嵌套转义带来的问题
                 Call PostMessage(New With {
                     .action = "host_result",
-                    .id = msg.id,
+                    .id = JsonStr(root, "id"),
                     .result = If(result, "")
                 })
 
             Case "host_log"
-                Call OnHostLog(If(msg.message, ""))
+                Call OnHostLog(If(JsonStr(root, "message"), ""))
+
+            Case "genui_errors"
+                ' 页面捕获到了运行时错误
+                Call MergeIssues(root)
+                Call CompleteHealthWaiter()
+
+            Case "genui_check"
+                ' 页面自检报告
+                Call ApplyCheck(root)
         End Select
+    End Sub
+
+    Private Shared Function JsonStr(root As JsonElement, name As String) As String
+        Dim v As JsonElement
+
+        If root.TryGetProperty(name, v) AndAlso v.ValueKind = JsonValueKind.String Then
+            Return v.GetString()
+        End If
+
+        Return Nothing
+    End Function
+
+    Private Shared Function JsonInt(root As JsonElement, name As String) As Integer
+        Dim v As JsonElement
+
+        If root.TryGetProperty(name, v) AndAlso v.ValueKind = JsonValueKind.Number Then
+            Return v.GetInt32()
+        End If
+
+        Return 0
+    End Function
+
+    ''' <summary>
+    ''' 收集网页回传的运行时错误
+    ''' </summary>
+    Private Sub MergeIssues(root As JsonElement)
+        Dim arr As JsonElement
+
+        If Not root.TryGetProperty("errors", arr) OrElse arr.ValueKind <> JsonValueKind.Array Then
+            Return
+        End If
+
+        SyncLock PageIssues
+            For Each item As JsonElement In arr.EnumerateArray()
+                Call PageIssues.Add(New PageIssue With {
+                    .kind = JsonStr(item, "kind"),
+                    .message = JsonStr(item, "message"),
+                    .extra = JsonStr(item, "extra")
+                })
+            Next
+        End SyncLock
+    End Sub
+
+    ''' <summary>
+    ''' 合并页面自检结果与已经收集到的运行时错误，得出最终的体检报告
+    ''' </summary>
+    Private Sub ApplyCheck(root As JsonElement)
+        Dim health As New PageHealth With {
+            .controls = JsonInt(root, "controls"),
+            .expected = JsonInt(root, "expected"),
+            .buttons = JsonInt(root, "buttons")
+        }
+
+        Dim all As New List(Of PageIssue)
+
+        SyncLock PageIssues
+            all.AddRange(PageIssues)
+        End SyncLock
+
+        Dim arr As JsonElement
+
+        If root.TryGetProperty("issues", arr) AndAlso arr.ValueKind = JsonValueKind.Array Then
+            For Each item As JsonElement In arr.EnumerateArray()
+                If item.ValueKind = JsonValueKind.String Then
+                    all.Add(New PageIssue With {.kind = "check", .message = item.GetString()})
+                End If
+            Next
+        End If
+
+        If root.TryGetProperty("errors", arr) AndAlso arr.ValueKind = JsonValueKind.Array Then
+            For Each item As JsonElement In arr.EnumerateArray()
+                all.Add(New PageIssue With {
+                    .kind = JsonStr(item, "kind"),
+                    .message = JsonStr(item, "message"),
+                    .extra = JsonStr(item, "extra")
+                })
+            Next
+        End If
+
+        health.issues = all.ToArray()
+        health.healthy = Not health.NeedsRepair()
+
+        LastHealth = health
+
+        RaiseEvent PageDiagnostics(health)
+        Call CompleteHealthWaiter()
+    End Sub
+
+    Private Sub CompleteHealthWaiter()
+        Dim waiter As TaskCompletionSource(Of PageHealth) = HealthWaiter
+
+        If Not waiter Is Nothing Then
+            HealthWaiter = Nothing
+            Call waiter.TrySetResult(LastHealth)
+        End If
     End Sub
 
 End Class

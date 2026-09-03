@@ -34,6 +34,90 @@
         return n;
     }
 
+    /* ==================================================================
+       第一层：运行时错误捕获
+
+       由大语言模型动态编写的 js 代码很可能存在语法错误、取不到 DOM 元素、
+       调用了不存在的方法等问题。这些问题通常只表现为“按钮点了没反应”，
+       宿主完全不知情。引导脚本注入在 <head>，会早于页面自己的脚本执行，
+       所以这里装好的全局陷阱能够覆盖到连语法错误在内的所有异常，
+       并把它们回传给宿主作为自动修复的依据。
+       ================================================================== */
+    var diagnostics = [];
+    var reportTimer = null;
+
+    function postToHost(payload) {
+        try {
+            if (window.chrome && window.chrome.webview &&
+                typeof window.chrome.webview.postMessage === 'function') {
+                window.chrome.webview.postMessage(payload);
+            }
+        } catch (e) { /* 宿主不可用时忽略 */ }
+    }
+
+    function recordIssue(kind, message, extra) {
+        if (diagnostics.length >= 60) return;
+
+        diagnostics.push({
+            kind: kind,
+            message: String(message || '').slice(0, 800),
+            extra: extra ? String(extra).slice(0, 300) : ''
+        });
+
+        /* 用 warn 而不是 error，避免触发下面被我们改写过的 console.error */
+        try { console.warn('[GenUI] 捕获页面问题 [' + kind + '] ' + message); } catch (e) { }
+
+        scheduleReport();
+    }
+
+    function scheduleReport() {
+        if (reportTimer) return;
+
+        reportTimer = setTimeout(function () {
+            reportTimer = null;
+
+            if (diagnostics.length) {
+                postToHost({
+                    action: 'genui_errors',
+                    errors: diagnostics.slice(0, 30),
+                    total: diagnostics.length
+                });
+            }
+        }, 350);
+    }
+
+    function argText(a) {
+        if (a === null || a === undefined) return String(a);
+        if (typeof a === 'object') {
+            try { return JSON.stringify(a).slice(0, 300); } catch (e) { return String(a); }
+        }
+        return String(a);
+    }
+
+    /* 语法错误、null 引用等未捕获异常 */
+    window.onerror = function (message, source, lineno, colno, error) {
+        recordIssue('error',
+            (error && error.stack) ? error.stack : message,
+            (source ? source : '') + (lineno ? ':' + lineno : '') + (colno ? ':' + colno : ''));
+        return false;
+    };
+
+    /* Promise 之中没有被 catch 的异常（LLM 写的 async 代码最容易踩） */
+    window.addEventListener('unhandledrejection', function (e) {
+        var r = e.reason;
+        recordIssue('rejection', (r && r.stack) ? r.stack : ((r && r.message) || argText(r)));
+    });
+
+    /* console.error 也一并收集 */
+    var nativeConsoleError = console.error;
+
+    console.error = function () {
+        try {
+            recordIssue('console', Array.prototype.map.call(arguments, argText).join(' '));
+        } catch (e) { }
+        if (nativeConsoleError) nativeConsoleError.apply(console, arguments);
+    };
+
     /* 宿主对象在页面之中有好几种等价的取法，而且不同取法之下代理的调用约定并不一致：
          - chrome.webview.hostObjects.host        异步代理，方法调用返回 Promise（首选）
          - window.host                            AddHostObjectToScript 建立的同名代理
@@ -306,6 +390,31 @@
         return next();
     }
 
+    /* 取得一个容器元素：找不到的时候自动补一个，
+       避免 LLM 写错 id 就导致整个渲染功能静默失效
+       （null.appendChild / null.innerHTML 是最常见的崩溃点）。 */
+    function resolveContainer(target) {
+        if (target === null || target === undefined || target === '') return null;
+        if (typeof target !== 'string') return target;
+
+        var node = document.getElementById(target) || qs('#' + target);
+
+        if (node) return node;
+
+        recordIssue('missing-dom',
+            '找不到 id 为 "' + target + '" 的容器元素，已经自动创建了一个空容器；' +
+            '请检查 HTML 之中是否漏写这个 id',
+            target);
+
+        node = el('div');
+        node.id = target;
+        node.setAttribute('data-genui-auto', '1');
+
+        (document.body || document.documentElement).appendChild(node);
+
+        return node;
+    }
+
     var GenUI = {
         version: '1.0',
         state: state,
@@ -510,10 +619,17 @@
             return box;
         },
 
-        /* 把宿主回传的 AnalysisResult 渲染到指定容器之中 */
+        /* 把宿主回传的结果渲染到指定容器之中。
+           容器找不到的时候会自动创建，不会因为 null 引用导致整个流程中断。 */
         renderResult: function (containerId, data) {
-            var box = typeof containerId === 'string' ? qs('#' + containerId) : containerId;
-            if (!box) { return; }
+            data = data || {};
+
+            var box = resolveContainer(containerId);
+
+            if (!box) {
+                recordIssue('missing-dom', 'renderResult 没有收到有效的容器参数', String(containerId));
+                return;
+            }
 
             box.innerHTML = '';
 
@@ -696,16 +812,113 @@
             return GenUI.call('load_demo', {});
         },
 
-        el: el,
+        /* 页面自检：检查参数控件是否齐全、有没有可点击的按钮等。
+           用于发现“没有抛异常但功能残缺”的情况，结果会回传给宿主，
+           宿主据此判断是否需要让模型重新生成界面。 */
+        selfCheck: function () {
+            var issues = [];
+            var controls = qsa('[data-gu-param]').length;
+            var buttons = qsa('button, input[type=button], input[type=submit]').length;
+            var expected = (GenUI.params || []).length;
+
+            if (expected > 0 && controls === 0) {
+                issues.push('页面上没有任何带 data-gu-param 属性的控件，宿主无法收集用户填写的参数（参数清单之中一共有 ' + expected + ' 个参数）');
+            } else if (expected > 0 && controls < expected) {
+                issues.push('只生成了 ' + controls + ' 个参数控件，而参数清单之中一共有 ' + expected + ' 个参数');
+            }
+
+            if (buttons === 0) {
+                issues.push('页面上没有任何按钮，用户没有可以点击的入口');
+            }
+
+            postToHost({
+                action: 'genui_check',
+                ok: issues.length === 0,
+                issues: issues,
+                controls: controls,
+                buttons: buttons,
+                expected: expected,
+                errors: diagnostics.slice(0, 20)
+            });
+        },
+
+        /* 取得（或自动创建）一个容器元素 */
+        el: resolveContainer,
+        /* 创建一个 DOM 元素 */
+        node: el,
         qs: qs,
         qsa: qsa
     };
 
     GenUI.bindHost = bindHost;
-    window.GenUI = GenUI;
 
-    /* 宿主可以直接调用这个全局函数把运行状态推送到页面上 */
+    /* 用 Proxy 包一层：LLM 调用到不存在的 GenUI 方法时，
+       给出明确的诊断信息并返回一个安全的 rejected promise，
+       而不是直接 “xxx is not a function” 让整个流程静默失效。 */
+    var KNOWN_API = 'call / collect / run / browse / status / renderResult / image / table / text / ping / selfCheck / el / node / qs / qsa / openScript / loadDemo';
+
+    window.GenUI = new Proxy(GenUI, {
+        get: function (target, prop) {
+            if (prop in target || typeof prop === 'symbol') {
+                return target[prop];
+            }
+
+            recordIssue('missing-api',
+                '调用了不存在的 GenUI.' + String(prop) + '，当前可用的 API 有：' + KNOWN_API,
+                String(prop));
+
+            /* 返回一个“永远不会成功”的函数，避免同步抛异常打断调用方 */
+            return function () {
+                return Promise.reject(new Error('GenUI.' + String(prop) + ' 不存在，可用的 API 有：' + KNOWN_API));
+            };
+        }
+    });
+
+    /* 宿主可以直接调用的全局函数 */
     window.genui_status = function (msg, level) { return GenUI.status(msg, level); };
+    window.genui_stream = function (d) { return GenUI.stream(d); };
+    window.genui_selfcheck = function () { return GenUI.selfCheck(); };
+
+    /* 页面顶部横幅：宿主在自动修复的时候用它提示用户。
+       它只是贴在页面最上方，不会遮挡原有内容，用户仍然可以继续操作。 */
+    window.genui_banner = function (msg, level) {
+        var box = qs('#genui-banner');
+
+        if (!msg) {
+            if (box) box.style.display = 'none';
+            return;
+        }
+
+        if (!box) {
+            box = el('div');
+            box.id = 'genui-banner';
+            box.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;padding:9px 18px;' +
+                'font-size:13px;font-weight:600;color:#fff;line-height:1.5;font-family:inherit;' +
+                'box-shadow:0 6px 18px rgba(3,12,22,.32);';
+
+            (document.body || document.documentElement).appendChild(box);
+        }
+
+        box.style.background = (level === 'error') ? '#DC2626'
+            : ((level === 'success') ? '#16A34A' : '#F59E0B');
+        box.textContent = msg;
+        box.style.display = 'block';
+    };
+
+    /* DOM ready 之后跑一次自检，给宿主留出判断依据 */
+    (function () {
+        var run = function () {
+            setTimeout(function () {
+                try { GenUI.selfCheck(); } catch (e) { }
+            }, 600);
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+    })();
 
     /* 页面通用的结果区基础样式 */
     var extra = document.createElement('style');

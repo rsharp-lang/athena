@@ -1,3 +1,6 @@
+Imports System.Linq
+Imports System.Text
+Imports System.Text.Json
 Imports System.Threading.Tasks
 Imports Ollama
 
@@ -33,6 +36,39 @@ Public Class GenerativeUIEngine
     ''' </summary>
     ''' <returns></returns>
     Public Property MaxRetry As Integer = 1
+
+    ''' <summary>
+    ''' 页面渲染之后的运行期体检发现问题时的最大自动修复轮数。
+    ''' 每一轮都是一次完整的 html 重新生成，会明显增加等待时间，因此不宜过大。
+    ''' </summary>
+    ''' <returns></returns>
+    Public Property MaxRepair As Integer = 2
+
+    ''' <summary>
+    ''' 渲染完成之后等待页面自检结果的时间（毫秒）。
+    ''' 太短会漏掉延迟绑定的事件，太长用户等得久。
+    ''' </summary>
+    ''' <returns></returns>
+    Public Property InspectDelayMs As Integer = 1500
+
+    ''' <summary>
+    ''' 等待页面自检结果的超时时间（毫秒），超时之后按「页面健康」处理以避免流程卡死
+    ''' </summary>
+    ''' <returns></returns>
+    Public Property HealthTimeoutMs As Integer = 5000
+
+    ''' <summary>
+    ''' 最近一次生成的、尚未注入引导脚本的原始 html 代码。
+    ''' 自动修复的时候把它回喂给模型，比回喂注入了引导脚本的完整文档更短也更清晰。
+    ''' </summary>
+    ''' <returns></returns>
+    Public Property LastRawHtml As String
+
+    ''' <summary>
+    ''' 最近一次页面体检的结果
+    ''' </summary>
+    ''' <returns></returns>
+    Public Property LastHealth As PageHealth
 
     ''' <summary>
     ''' 引擎的运行状态变化事件
@@ -112,6 +148,8 @@ Public Class GenerativeUIEngine
             Dim html As String = HtmlPage.ExtractHtml(LastOutput)
 
             If HtmlPage.IsHtmlDocument(html) AndAlso html.Length >= MinHtmlLength Then
+                LastRawHtml = html
+
                 Call PushStatus("界面代码生成完毕，正在渲染…", "success")
 
                 Return HtmlPage.Normalize(html, stateJson:=BuildState())
@@ -136,18 +174,67 @@ Public Class GenerativeUIEngine
             Dim html As String = Await GenerateHTML(request)
 
             If String.IsNullOrEmpty(html) Then
-                Call PushStatus("大语言模型没有返回可用的界面代码", "error")
-                Call ui.SetUI(HtmlPage.ErrorPage(
-                    title:=errorTitle,
-                    message:="大语言模型多次尝试之后依然没有产出可以被渲染的 HTML 文档，请重新选择脚本再试一次。",
-                    detail:=LastOutput))
-
+                Call ShowGenerateFailure(errorTitle)
                 Return False
             End If
 
-            Call ui.SetUI(html)
+            ' ---- 第 0 层：宿主侧静态预检，命中就直接修正，省掉一次浏览器往返 ----
+            Dim staticIssues As String() = HtmlPage.StaticCheck(html)
 
-            Return True
+            If staticIssues.Length > 0 Then
+                Call PushStatus($"界面代码存在 {staticIssues.Length} 处明显问题，正在让模型修正…", "warn")
+
+                Dim repaired As String = Await Repair(
+                    staticIssues.Select(Function(s) New PageIssue With {.kind = "static", .message = s}).ToArray())
+
+                If Not String.IsNullOrEmpty(repaired) Then
+                    html = repaired
+                End If
+            End If
+
+            ' ---- 渲染 → 运行期体检 → 自动修复 ----
+            Dim attempt As Integer = 0
+
+            Do
+                Call ui.ResetDiagnostics()
+                Call ui.SetUI(html)
+
+                Await Task.Delay(InspectDelayMs)
+
+                Dim health As PageHealth = Await WaitHealth()
+
+                LastHealth = health
+
+                If health Is Nothing OrElse Not health.NeedsRepair() Then
+                    ' 页面健康或者超时收不到报告都直接放行
+                    Call ClearBanner()
+                    Return True
+                End If
+
+                If attempt >= MaxRepair Then
+                    Call PushStatus($"已经尝试修复 {MaxRepair} 次仍然存在异常，将回退为框架内置的参数表单", "warn")
+                    Call ShowBanner("界面仍然存在异常，正在切换为内置表单", "error")
+
+                    Await Task.Delay(1200)
+
+                    Return False
+                End If
+
+                attempt += 1
+
+                Call PushStatus($"检测到界面运行异常，正在让模型自我修复（第 {attempt}/{MaxRepair} 次）…", "warn")
+                Call ShowBanner("检测到界面异常，正在自动修复…", "warn")
+
+                Dim fixedHtml As String = Await Repair(health.issues)
+
+                If String.IsNullOrEmpty(fixedHtml) Then
+                    ' 修复失败，保留当前界面至少还能看见
+                    Call ClearBanner()
+                    Return True
+                End If
+
+                html = fixedHtml
+            Loop
         Catch ex As Exception
             Call App.LogException(ex)
             Call PushStatus($"生成界面时出现异常: {ex.Message}", "error")
@@ -156,6 +243,93 @@ Public Class GenerativeUIEngine
             Return False
         End Try
     End Function
+
+    Private Sub ShowGenerateFailure(errorTitle As String)
+        Call PushStatus("大语言模型没有返回可用的界面代码", "error")
+        Call ui.SetUI(HtmlPage.ErrorPage(
+            title:=errorTitle,
+            message:="大语言模型多次尝试之后依然没有产出可以被渲染的 HTML 文档，请重新选择脚本再试一次。",
+            detail:=LastOutput))
+    End Sub
+
+    ''' <summary>
+    ''' 等待页面回传自检报告
+    ''' </summary>
+    Private Async Function WaitHealth() As Task(Of PageHealth)
+        Dim waiter As New TaskCompletionSource(Of PageHealth)(TaskCreationOptions.RunContinuationsAsynchronously)
+
+        ui.HealthWaiter = waiter
+
+        Dim timeout As Task = Task.Delay(HealthTimeoutMs)
+
+        If Await Task.WhenAny(waiter.Task, timeout) Is timeout Then
+            ui.HealthWaiter = Nothing
+            Return Nothing
+        End If
+
+        Return Await waiter.Task
+    End Function
+
+    ''' <summary>
+    ''' 把浏览器之中真实报出来的错误连同上一次的完整代码一起回喂给模型，让它自我修复
+    ''' </summary>
+    ''' <param name="issues">页面回传的问题清单</param>
+    ''' <returns>修复之后的 html 文档；修复失败时返回空字符串</returns>
+    Private Async Function Repair(issues As PageIssue()) As Task(Of String)
+        Dim sb As New StringBuilder
+        Dim n As Integer = 0
+
+        Call sb.AppendLine("你上一次编写的 HTML 界面在 WebView2 之中运行时出现了问题，请修复它。")
+        Call sb.AppendLine()
+        Call sb.AppendLine("## 发现的问题")
+
+        If Not issues Is Nothing Then
+            For Each issue As PageIssue In issues
+                If issue Is Nothing Then
+                    Continue For
+                End If
+
+                n += 1
+
+                Call sb.AppendLine($"{n}. [{issue.kind}] {issue.message}")
+
+                If Not String.IsNullOrWhiteSpace(issue.extra) Then
+                    Call sb.AppendLine($"   位置/对象: {issue.extra}")
+                End If
+            Next
+        End If
+
+        If n = 0 Then
+            Call sb.AppendLine("（宿主没有拿到具体的错误信息，但是检测到界面存在功能性缺失，请仔细检查参数控件是否齐全、事件是否正确绑定。）")
+        End If
+
+        Call sb.AppendLine()
+        Call sb.AppendLine("## 你上一次生成的完整代码")
+        Call sb.AppendLine("```html")
+        Call sb.AppendLine(If(LastRawHtml, ""))
+        Call sb.AppendLine("```")
+        Call sb.AppendLine()
+        Call sb.AppendLine("## 修复要求")
+        Call sb.AppendLine("- 逐一解决上面列出的每一个问题，一个都不能遗漏。")
+        Call sb.AppendLine("- 输出修复之后的**完整** HTML 文档，不要只输出差异片段或者局部代码。")
+        Call sb.AppendLine("- 同样只输出一个 ```html 代码块，代码块之外不要写任何解释文字。")
+        Call sb.AppendLine("- 不要引入任何外部资源，不要使用 ES module 与 import。")
+        Call sb.AppendLine("- 所有 await 都要包在 try/catch 之中，并用 GenUI.status(e.message, 'error') 把错误显示出来。")
+
+        Return Await GenerateHTML(sb.ToString())
+    End Function
+
+    ''' <summary>
+    ''' 在页面顶部显示一条提示横幅（不遮挡原有界面，用户仍然可以继续操作）
+    ''' </summary>
+    Private Sub ShowBanner(message As String, level As String)
+        Call ui.EvalScriptAsync(
+            $"window.genui_banner && window.genui_banner({JsonSerializer.Serialize(message)}, {JsonSerializer.Serialize(level)})")
+    End Sub
+
+    Private Sub ClearBanner()
+        Call ui.EvalScriptAsync("window.genui_banner && window.genui_banner('')")
+    End Sub
 
     ''' <summary>
     ''' 最近一次大语言模型的原始输出，用于错误诊断

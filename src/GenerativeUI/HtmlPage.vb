@@ -120,6 +120,45 @@ Public Module HtmlPage
     End Function
 
     ''' <summary>
+    ''' 在把 html 交给浏览器渲染之前先做一次静态预检，找出那些「注定跑不起来」的写法。
+    ''' 这一层完全不经过浏览器，成本极低；一旦命中就可以直接进入自动修复流程，
+    ''' 省掉一次「渲染 → 发现错误 → 再修复」的浏览器往返。
+    ''' </summary>
+    ''' <param name="html">待检查的 html 文档</param>
+    ''' <returns>问题描述列表；没有问题的时候返回空数组</returns>
+    Public Function StaticCheck(html As String) As String()
+        If String.IsNullOrWhiteSpace(html) Then
+            Return New String() {"html 内容为空"}
+        End If
+
+        Dim issues As New List(Of String)
+        Dim rules As (pattern As String, message As String)() = {
+            ("(?:src|href)\s*=\s*[""']https?://", "引用了外部网络资源（src/href 指向 http(s)），离线环境无法加载"),
+            ("@import\s+url\(\s*[""']?https?://", "通过 @import 引用了外部样式表"),
+            ("url\(\s*[""']?https?://", "在 CSS 之中引用了外部资源"),
+            ("type\s*=\s*[""']module[""']", "使用了 ES module（type=""module""），请勿使用"),
+            ("import\s+[^;]+from\s*[""']", "使用了 import 语法，请勿使用"),
+            ("host\s*\.\s*invoke\s*\(", "调用了不可用的 host.invoke，请改用 GenUI.call"),
+            ("document\s*\.\s*write\s*\(", "使用了 document.write，会清空整个文档")
+        }
+
+        For Each rule As (pattern As String, message As String) In rules
+            If Regex.IsMatch(html, rule.pattern, RegexOptions.IgnoreCase Or RegexOptions.Multiline) Then
+                Call issues.Add(rule.message)
+            End If
+        Next
+
+        Dim open As Integer = Regex.Matches(html, "<script[^>]*>", RegexOptions.IgnoreCase).Count
+        Dim close As Integer = Regex.Matches(html, "</script\s*>", RegexOptions.IgnoreCase).Count
+
+        If open <> close Then
+            Call issues.Add($"<script> 标签没有正确配对（开始标签 {open} 个，结束标签 {close} 个）")
+        End If
+
+        Return issues.ToArray()
+    End Function
+
+    ''' <summary>
     ''' 规整 html 文档：补齐文档类型声明与 head 骨架，并向其中注入基础样式、
     ''' 宿主状态数据与引导脚本。
     ''' </summary>

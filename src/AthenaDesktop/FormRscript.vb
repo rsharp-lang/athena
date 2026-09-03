@@ -80,6 +80,7 @@ Public Class FormRscript
 
         AddHandler engine.Status, AddressOf OnEngineStatus
         AddHandler Webui1.HostLog, AddressOf OnHostLog
+        AddHandler Webui1.PageDiagnostics, AddressOf OnPageDiagnostics
 
         Call Webui1.SetUI(DemoPages.Launcher())
     End Sub
@@ -527,6 +528,30 @@ Public Class FormRscript
     Private Sub OnRunLog(message As String)
         Call engine.PushStatus(message)
         Call WriteLog(message)
+    End Sub
+
+    ''' <summary>
+    ''' 记录网页回传的自检结果与运行时错误，作为自动修复机制的排查依据
+    ''' </summary>
+    Private Sub OnPageDiagnostics(health As PageHealth)
+        If health Is Nothing Then
+            Call WriteLog("页面体检：超时，没有收到自检报告")
+            Return
+        End If
+
+        Dim lines As New List(Of String)
+
+        Call lines.Add($"页面体检：healthy={health.healthy} 控件 {health.controls}/{health.expected} 按钮 {health.buttons} 问题 {health.issues.Length} 条")
+
+        For Each issue As PageIssue In health.issues
+            Call lines.Add($"  [{issue.kind}] {issue.message}")
+        Next
+
+        Call WriteLog(lines.ToArray())
+
+        If health.NeedsRepair() Then
+            Call WriteLog("  -> 触发自动修复流程")
+        End If
     End Sub
 
 End Class
