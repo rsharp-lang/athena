@@ -137,6 +137,7 @@
       <small>Generative UI · WebView2 · GNU R</small>
     </div>
     <div class="chips">
+      <span class="chip">宿主 <b id="chip-host">—</b></span>
       <span class="chip">模型 <b id="chip-model">—</b></span>
       <span class="chip">R 引擎 <b id="chip-r">—</b></span>
     </div>
@@ -220,14 +221,22 @@
   function openScript() { guard(GenUI.call('open_rscript', {})); }
   function loadDemo() { guard(GenUI.call('load_demo', {})); }
 
-  GenUI.call('get_context', {}).then(function (ctx) {
-    if (!ctx) return;
-    document.getElementById('chip-model').textContent = ctx.model || '—';
-    document.getElementById('chip-r').textContent = ctx.rscript ? 'Rscript' : '不可用';
-    if (ctx.script) {
-      GenUI.status('当前脚本: ' + ctx.script, 'info');
-    }
-  }).catch(function () { });
+  function fail(err) {
+    GenUI.status('宿主对象不可用: ' + (err && err.message ? err.message : String(err)), 'error');
+  }
+
+  GenUI.ping()
+    .then(function (v) {
+      document.getElementById('chip-host').textContent = v || 'host';
+      return GenUI.call('get_context', {});
+    })
+    .then(function (ctx) {
+      if (!ctx) return;
+      document.getElementById('chip-model').textContent = ctx.model || '—';
+      document.getElementById('chip-r').textContent = ctx.rscript ? 'Rscript' : '不可用';
+      if (ctx.script) GenUI.status('当前脚本: ' + ctx.script, 'info');
+    })
+    .catch(fail);
 </script>
 </body>
 </html>
