@@ -72,7 +72,7 @@ Public Class FormRscript
         engine = New GenerativeUIEngine(Webui1, uiLlm)
 
         ' 把两个客户端的输出都接到流式泵之上，网页端就能看见 AI 实时的工作过程
-        streamPump = New LlmStreamPump(Webui1) With {.FlushIntervalMs = 100}
+        streamPump = New LlmStreamPump(Webui1)
         Call streamPump.Attach(analyzerLlm, phase:="analyze", label:="① 归纳可调参数")
         Call streamPump.Attach(uiLlm, phase:="design", label:="② 编写操作界面")
 
