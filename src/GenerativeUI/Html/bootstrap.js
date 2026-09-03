@@ -17,14 +17,18 @@
         return n;
     }
 
-    /* 取得注入进来的宿主对象：优先使用 window.host，
-       其次回退到 chrome.webview.hostObjects.host 异步代理 */
+    /* 取得注入进来的宿主对象。
+       注意优先使用 chrome.webview.hostObjects.host：这是 WebView2 官方推荐的异步代理，
+       它上面调用 .NET 方法返回的就是 Promise；window.host 是 AddHostObjectToScript
+       顺带创建的同名代理，作为兜底使用。两者指向的是同一个 COM 宿主对象。 */
     function hostObject() {
-        if (window.host) return window.host;
         if (window.chrome && window.chrome.webview && window.chrome.webview.hostObjects) {
-            return window.chrome.webview.hostObjects.host;
+            var viaApi = window.chrome.webview.hostObjects.host;
+            if (viaApi) return viaApi;
         }
-        throw new Error('宿主对象 window.host 不可用：当前页面并没有运行在 WebView2 环境之中');
+        if (window.host) return window.host;
+
+        throw new Error('宿主对象不可用：当前页面并没有运行在 WebView2 环境之中（既没有 chrome.webview.hostObjects.host，也没有 window.host）');
     }
 
     var GenUI = {

@@ -6,7 +6,7 @@ Imports System.Threading.Tasks
 ''' 宿主命令处理器委托：接收来自网页的 json 字符串载荷，返回 json 字符串结果。
 ''' </summary>
 ''' <param name="payload">
-''' 网页通过 <c>host.invoke</c> 传入的 json 字符串，当命令不需要任何参数的时候可能为空字符串。
+''' 网页通过 <c>host.callHost</c> 传入的 json 字符串，当命令不需要任何参数的时候请传入 <c>"{}"</c>。
 ''' </param>
 ''' <returns>
 ''' 回传给网页的 json 字符串，建议使用 <see cref="HostMessage.Success(Object)"/> 或者
@@ -19,7 +19,7 @@ Imports System.Threading.Tasks
 Public Delegate Function HostCommandHandler(payload As String) As Task(Of String)
 
 ''' <summary>
-''' 一个可以被网页中的 JavaScript 代码通过 <c>host.invoke(name, payload)</c> 调用到的宿主命令
+''' 一个可以被网页中的 JavaScript 代码通过 <c>host.callHost(name, payload)</c> 调用到的宿主命令
 ''' </summary>
 Public Class HostCommand
 
