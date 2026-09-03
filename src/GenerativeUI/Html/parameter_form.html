@@ -334,7 +334,8 @@
 
   function renderResult(data) {
     document.getElementById('images-empty').style.display = (data.images && data.images.length) ? 'none' : '';
-    GenUI.renderResult('result-area', data);
+    /* 只把图片渲染到 result-area，表格与文本各自有自己的容器 */
+    GenUI.renderResult('result-area', { images: data.images || [], tables: [], texts: [] });
 
     document.querySelectorAll('#result-area img').forEach(function (img) {
       img.addEventListener('click', function () { showLightbox(img.src); });
