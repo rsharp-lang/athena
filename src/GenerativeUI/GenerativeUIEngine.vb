@@ -62,7 +62,7 @@ Public Class GenerativeUIEngine
     ''' 当前引擎所使用的大语言模型客户端
     ''' </summary>
     ''' <returns></returns>
-    Public ReadOnly Property LLM As LLMClient
+    Public ReadOnly Property Model As LLMClient
         Get
             Return llm
         End Get

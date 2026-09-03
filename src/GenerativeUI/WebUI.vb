@@ -1,4 +1,5 @@
-﻿Imports System.Text.Json
+﻿Imports System.ComponentModel
+Imports System.Text.Json
 Imports Microsoft.Web.WebView2.Core
 Imports Ollama
 
@@ -35,7 +36,7 @@ Public Class WebUI
     ''' 设置绑定到当前生成式界面之上的大语言模型客户端
     ''' </summary>
     ''' <returns></returns>
-    Public ReadOnly Property LLM As LLMClient
+    Public ReadOnly Property Model As LLMClient
         Get
             Return llm
         End Get
