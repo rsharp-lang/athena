@@ -20,6 +20,7 @@ Public Class WebUI
     Dim pendingHtml As String
     Dim webViewReady As Boolean = False
     Dim enableDevTools As Boolean = False
+    Dim webMessageHooked As Boolean = False
 
     ''' <summary>
     ''' 注入到网页之中的宿主对象，通过 <c>WebUI.Host.Commands.Register(...)</c>
@@ -189,8 +190,17 @@ Public Class WebUI
             Call WebViewLoader.DeveloperOptions(WebView21, True)
         End If
 
-        ' 宿主对象只需要注入一次，页面导航之后依然有效
+        ' 宿主对象只需要注入一次，页面导航之后依然有效。
+        ' 注意 AddHostObjectToScript 只会把对象注册到 chrome.webview.hostObjects.{name}，
+        ' 并不会创建 window.{name}；而且这条链路依赖 COM IDispatch，某些情况下会在
+        ' 读取属性的阶段就失败，因此主通道改用 Web Message（见 OnWebMessage）。
         Call WebView21.CoreWebView2.AddHostObjectToScript("host", js)
+
+        If Not webMessageHooked Then
+            webMessageHooked = True
+
+            AddHandler WebView21.CoreWebView2.WebMessageReceived, AddressOf OnWebMessage
+        End If
 
         webViewReady = True
 
@@ -201,6 +211,42 @@ Public Class WebUI
 
     Private Sub WebView21_NavigationCompleted(sender As Object, e As CoreWebView2NavigationCompletedEventArgs) Handles WebView21.NavigationCompleted
         RaiseEvent UIReady()
+    End Sub
+
+    ''' <summary>
+    ''' 处理网页通过 <c>chrome.webview.postMessage</c> 发送过来的宿主调用请求。
+    ''' 这是网页调用宿主能力的<b>主通道</b>：相对 COM 宿主对象，它没有任何
+    ''' IDispatch 依赖，也不会受 AddHostObjectToScript 包装失败的影响。
+    ''' </summary>
+    Private Async Sub OnWebMessage(sender As Object, e As CoreWebView2WebMessageReceivedEventArgs)
+        Dim msg As HostBridgeMessage = Nothing
+
+        Try
+            msg = JsonSerializer.Deserialize(Of HostBridgeMessage)(e.WebMessageAsJson)
+        Catch ex As Exception
+            Call Console.WriteLine($"无法解析网页消息: {ex.Message}")
+            Return
+        End Try
+
+        If msg Is Nothing OrElse String.IsNullOrEmpty(msg.action) Then
+            Return
+        End If
+
+        Select Case msg.action
+            Case "host_call"
+                Dim result As String = Await js.Invoke(msg.command, If(msg.payload, "{}"))
+
+                ' result 本身就是一段 json 文本，这里作为字符串回传，
+                ' 由网页侧再解析一次，避免 json 嵌套转义带来的问题
+                Call PostMessage(New With {
+                    .action = "host_result",
+                    .id = msg.id,
+                    .result = If(result, "")
+                })
+
+            Case "host_log"
+                Call OnHostLog(If(msg.message, ""))
+        End Select
     End Sub
 
 End Class

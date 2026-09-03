@@ -26,6 +26,84 @@
        因此这里逐个候选逐个尝试，命中第一个真正可调用的就缓存下来复用。 */
     var HOST_METHOD = 'callHost';
 
+    /* ------------------------------------------------------------------
+       通道一：Web Message 桥（主通道）
+
+       宿主对象的 COM 链路（AddHostObjectToScript）在某些运行时组合下会在
+       “读取属性”阶段就失败（E_INVALIDARG 0x80070057），连 log() 都调不通；
+       而且它只会把对象注册到 chrome.webview.hostObjects.{name}，
+       并不会创建 window.{name}。因此改用 postMessage 双向通道作为主通道：
+       网页 -> 宿主：chrome.webview.postMessage({action:'host_call', id, command, payload})
+       宿主 -> 网页：{action:'host_result', id, result}
+       这条通道没有任何 COM 依赖。
+       ------------------------------------------------------------------ */
+    var BRIDGE_PROBE_MS = 4000;
+    var BRIDGE_CALL_MS = 30 * 60 * 1000;
+
+    var bridgeSeq = 0;
+    var bridgePending = {};
+    var bridgeListening = false;
+
+    function hasWebView() {
+        return !!(window.chrome && window.chrome.webview &&
+                  typeof window.chrome.webview.postMessage === 'function' &&
+                  typeof window.chrome.webview.addEventListener === 'function');
+    }
+
+    function bridgeListen() {
+        if (bridgeListening || !hasWebView()) return;
+
+        bridgeListening = true;
+
+        window.chrome.webview.addEventListener('message', function (e) {
+            var d = e.data;
+
+            if (!d) return;
+            if (d.action === 'status') { GenUI.status(d.message, d.level); return; }
+            if (d.action !== 'host_result') return;
+
+            var slot = bridgePending[d.id];
+            if (!slot) return;
+
+            delete bridgePending[d.id];
+            slot.resolve(d.result);
+        });
+    }
+
+    function bridgeCall(cmd, payload, timeoutMs) {
+        bridgeListen();
+
+        return new Promise(function (resolve, reject) {
+            var id = 'c' + (++bridgeSeq);
+            var timer = null;
+
+            if (timeoutMs > 0) {
+                timer = setTimeout(function () {
+                    delete bridgePending[id];
+                    reject(new Error('宿主消息桥超时（' + timeoutMs + 'ms，command=' + cmd + '）'));
+                }, timeoutMs);
+            }
+
+            bridgePending[id] = {
+                resolve: function (v) { if (timer) clearTimeout(timer); resolve(v); },
+                reject: function (e) { if (timer) clearTimeout(timer); reject(e); }
+            };
+
+            try {
+                window.chrome.webview.postMessage({
+                    action: 'host_call',
+                    id: id,
+                    command: cmd,
+                    payload: payload
+                });
+            } catch (e) {
+                delete bridgePending[id];
+                if (timer) clearTimeout(timer);
+                reject(e);
+            }
+        });
+    }
+
     function hostCandidates() {
         var list = [];
         var cw = window.chrome && window.chrome.webview ? window.chrome.webview : null;
