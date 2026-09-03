@@ -14,4 +14,19 @@
     <ProjectReference Include="..\GenerativeUI\GenerativeUI.vbproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="*.json" />
+    <None Remove="*.txt" />
+    <Content Include="sample_params.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="llm_output.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\AthenaDesktop\Html\launcher.html">
+      <Link>launcher.html</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
