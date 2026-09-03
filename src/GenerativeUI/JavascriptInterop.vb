@@ -36,6 +36,12 @@ Public Class JavascriptInterop
     ''' 扩展网页侧可以调用的宿主能力。
     ''' </summary>
     ''' <returns></returns>
+    ''' <remarks>
+    ''' 这个属性不暴露给 COM：注册表中的 <see cref="HostCommand.Handler"/> 是委托类型，
+    ''' 无法被 COM 封送，若一并发布出去会导致整个 class interface 的 type info 生成失败，
+    ''' 表现为页面调用任何宿主方法都返回 DISP_E_UNKNOWNNAME。
+    ''' </remarks>
+    <ComVisible(False)>
     Public ReadOnly Property Commands As HostCommandRegistry
         Get
             Return registry
@@ -55,12 +61,17 @@ Public Class JavascriptInterop
     ''' json 字符串形式的调用结果。成功时为 <c>{ok:true, data:...}</c>；
     ''' 失败时为 <c>{ok:false, error:"..."}</c>。任何异常都不会穿透 COM 边界。
     ''' </returns>
+    ''' <remarks>
+    ''' 注意：这个方法名不能使用 <c>Invoke</c>。<c>Invoke</c> 是 COM IDispatch 自身的
+    ''' 方法名，.NET 在为托管对象构建 COM 分发表时会过滤掉与 IDispatch/IUnknown 成员
+    ''' 同名的成员，导致 GetIDsOfNames("invoke") 返回 DISP_E_UNKNOWNNAME (0x80020006)。
+    ''' </remarks>
     ''' <example>
     ''' // 在网页之中调用宿主命令
-    ''' const result = JSON.parse(await host.invoke("run_script", JSON.stringify({k: 3})));
+    ''' const result = JSON.parse(await host.callHost("run_script", JSON.stringify({k: 3})));
     ''' if (!result.ok) { throw new Error(result.error); }
     ''' </example>
-    Public Async Function Invoke(command As String, Optional payload As String = "{}") As Task(Of String)
+    Public Async Function CallHost(command As String, payload As String) As Task(Of String)
         Dim cmd As HostCommand = registry.Find(command)
         Dim args As String = If(payload, "{}")
 
@@ -109,6 +120,17 @@ Public Class JavascriptInterop
     ''' <returns></returns>
     Public Function Version() As String
         Return "GenerativeUI/1.0"
+    End Function
+
+    ''' <summary>
+    ''' 连通性自检：网页侧调用这个函数可以确认宿主对象的方法分发是否正常，
+    ''' 返回值形如 <c>GenerativeUI/1.0 (6 commands)</c>。
+    ''' 当 COM 分发出问题（例如 DISP_E_UNKNOWNNAME）时这个调用同样会失败，
+    ''' 因此可以据此把「宿主对象没注入」与「某个命令没注册」两种情况区分开来。
+    ''' </summary>
+    ''' <returns></returns>
+    Public Function Ping() As String
+        Return $"{Version()} ({registry.Names.Length} commands)"
     End Function
 
     Private Shared Function Clip(text As String, Optional maxLen As Integer = 120) As String
