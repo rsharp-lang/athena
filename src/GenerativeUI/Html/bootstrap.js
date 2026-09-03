@@ -41,16 +41,15 @@
         call: function (cmd, payload) {
             var json = '{}';
             var pending;
-            var host = hostObject();
-
-            console.log(host);
 
             try { json = JSON.stringify(payload === undefined ? {} : (payload || {})); }
             catch (e) { json = '{}'; }
 
-            /* 宿主对象不可用时统一返回 rejected promise，避免同步异常打断页面脚本 */
+            /* 宿主对象不可用时统一返回 rejected promise，避免同步异常打断页面脚本。
+               注意方法名是 callHost 而不是 invoke：invoke 是 COM IDispatch 自身的
+               方法名，.NET 不会把它发布到宿主对象的分发表之上。 */
             try {
-                pending = Promise.resolve(host.invoke(cmd, json));
+                pending = Promise.resolve(hostObject().callHost(cmd, json));
             } catch (e) {
                 return Promise.reject(e);
             }
