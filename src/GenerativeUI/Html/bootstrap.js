@@ -129,13 +129,17 @@
         return String(err);
     }
 
-    /* 解析宿主回传的 {ok, data, error} 契约 */
+    /* 解析宿主回传的 {ok, data, error} 契约。
+       宿主可能直接回传对象（Web Message 通道），也可能回传 json 字符串，
+       这里两种都接受。 */
     function parseHostResult(text) {
-        var r;
+        var r = text;
 
-        try { r = JSON.parse(text); }
-        catch (e) {
-            throw new Error('宿主返回的不是合法的 JSON: ' + String(text).slice(0, 200));
+        if (typeof r === 'string') {
+            try { r = JSON.parse(r); }
+            catch (e) {
+                throw new Error('宿主返回的不是合法的 JSON: ' + String(text).slice(0, 200));
+            }
         }
 
         if (!r || !r.ok) { throw new Error((r && r.error) || '宿主命令执行失败'); }
@@ -220,10 +224,12 @@
         function tryBridge() {
             return function () {
                 return bridgeCall('ping', '{}', BRIDGE_PROBE_MS).then(function (text) {
-                    var r = null;
+                    var r = text;
 
-                    try { r = JSON.parse(text); }
-                    catch (e) { throw new Error('ping 返回的不是 JSON: ' + String(text).slice(0, 120)); }
+                    if (typeof r === 'string') {
+                        try { r = JSON.parse(r); }
+                        catch (e) { throw new Error('ping 返回的不是 JSON: ' + String(text).slice(0, 160)); }
+                    }
 
                     if (!r || r.ok !== true) {
                         throw new Error((r && r.error) || 'ping 未返回 ok');
@@ -465,6 +471,16 @@
            把结果同时写到 console 与返回值之中，便于排查宿主注入问题 */
         debugHost: function () {
             var L = [];
+            var swallowed = [];
+
+            /* 探测坏掉的 COM 代理时 WebView2 内部会产生无法用 try/catch 捕获的
+               异步拒绝，这里临时接管掉，避免污染 console，同时并入报告 */
+            var onUnhandled = function (e) {
+                try { swallowed.push(errText(e.reason)); } catch (x) { }
+                if (e.preventDefault) e.preventDefault();
+            };
+
+            window.addEventListener('unhandledrejection', onUnhandled);
 
             function push(s) { L.push(s); console.log('[GenUI.debug] ' + s); }
 
@@ -567,6 +583,11 @@
                 push('');
                 push('--- bindHost 探测历史 ---');
                 push(lastReport.join('\n'));
+                if (swallowed.length) {
+                    push('');
+                    push('--- 探测过程中被吞掉的异步拒绝（COM 代理内部产生，可忽略）---');
+                    push(swallowed.join('\n'));
+                }
                 push('=== 报告结束 ===');
 
                 /* 同时回传给宿主，落盘到诊断日志文件 */
@@ -575,7 +596,12 @@
                     if (h && typeof h.log === 'function') h.log('GenUI.debugHost:\n' + L.join('\n'));
                 } catch (e) { /* 宿主不可用时忽略 */ }
 
+                window.removeEventListener('unhandledrejection', onUnhandled);
+
                 return L.join('\n');
+            }, function (err) {
+                window.removeEventListener('unhandledrejection', onUnhandled);
+                throw err;
             });
         },
 

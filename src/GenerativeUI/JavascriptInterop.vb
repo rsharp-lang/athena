@@ -76,14 +76,15 @@ Public Class JavascriptInterop
 
         ' 框架内置的自检命令：全部走 callHost 这个带参数的入口，
         ' 避免在 COM 表面之上再暴露无参方法（无参方法在 WebView2 的异步代理之上
-        ' 可能被当成属性，调用时报 “unable to call method on non-function”）
+        ' 可能被当成属性，调用时报 “unable to call method on non-function”）。
+        ' 注意返回值必须同样遵守 {ok, data, error} 契约，否则网页侧解析会失败。
         Select Case name
             Case "ping", "__ping__"
-                Return PingInfo()
+                Return HostMessage.Success(PingInfo())
             Case "version", "__version__"
-                Return Version()
+                Return HostMessage.Success(Version())
             Case "get_commands", "__commands__", "commands"
-                Return GetCommands()
+                Return HostMessage.Success(GetCommands())
         End Select
 
         Dim cmd As HostCommand = registry.Find(command)
