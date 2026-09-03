@@ -17,18 +17,119 @@
         return n;
     }
 
-    /* 取得注入进来的宿主对象。
-       注意优先使用 chrome.webview.hostObjects.host：这是 WebView2 官方推荐的异步代理，
-       它上面调用 .NET 方法返回的就是 Promise；window.host 是 AddHostObjectToScript
-       顺带创建的同名代理，作为兜底使用。两者指向的是同一个 COM 宿主对象。 */
-    function hostObject() {
-        if (window.chrome && window.chrome.webview && window.chrome.webview.hostObjects) {
-            var viaApi = window.chrome.webview.hostObjects.host;
-            if (viaApi) return viaApi;
-        }
-        if (window.host) return window.host;
+    /* 宿主对象在页面之中有好几种等价的取法，而且不同取法之下代理的调用约定并不一致：
+         - chrome.webview.hostObjects.host        异步代理，方法调用返回 Promise（首选）
+         - window.host                            AddHostObjectToScript 建立的同名代理
+         - chrome.webview.hostObjects.sync.host   同步代理，会阻塞 UI 线程（最后兜底）
+       代理对象本身还是 thenable，需要先 await 一次才能拿到真实的对象表示，
+       否则直接在其上取成员会得到 “non-function” 之类的错误。
+       因此这里逐个候选逐个尝试，命中第一个真正可调用的就缓存下来复用。 */
+    var HOST_METHOD = 'callHost';
 
-        throw new Error('宿主对象不可用：当前页面并没有运行在 WebView2 环境之中（既没有 chrome.webview.hostObjects.host，也没有 window.host）');
+    function hostCandidates() {
+        var list = [];
+        var cw = window.chrome && window.chrome.webview ? window.chrome.webview : null;
+
+        if (cw && cw.hostObjects) {
+            list.push({ name: 'hostObjects.host', obj: cw.hostObjects.host });
+            if (cw.hostObjects.sync) {
+                list.push({ name: 'hostObjects.sync.host', obj: cw.hostObjects.sync.host });
+            }
+        }
+        if (window.host) {
+            list.push({ name: 'window.host', obj: window.host });
+        }
+
+        return list.filter(function (c) { return !!c.obj; });
+    }
+
+    function describe(value) {
+        if (value === undefined) return 'undefined';
+        if (value === null) return 'null';
+        var t = typeof value;
+        if (t !== 'object' && t !== 'function') return t;
+        try { return t + '(' + Object.keys(value).slice(0, 12).join(',') + ')'; }
+        catch (e) { return t; }
+    }
+
+    /* 解析宿主回传的 {ok, data, error} 契约 */
+    function parseHostResult(text) {
+        var r;
+
+        try { r = JSON.parse(text); }
+        catch (e) {
+            throw new Error('宿主返回的不是合法的 JSON: ' + String(text).slice(0, 200));
+        }
+
+        if (!r || !r.ok) { throw new Error((r && r.error) || '宿主命令执行失败'); }
+
+        return r.data;
+    }
+
+    var hostBinding = null;
+
+    function bindHost() {
+        if (hostBinding) return Promise.resolve(hostBinding);
+
+        var candidates = hostCandidates();
+
+        if (!candidates.length) {
+            return Promise.reject(new Error(
+                '宿主对象不可用：当前页面并没有运行在 WebView2 环境之中' +
+                '（既没有 chrome.webview.hostObjects.host，也没有 window.host）'));
+        }
+
+        var index = 0;
+        var report = [];
+
+        function attempt(cand) {
+            /* 先把可能存在的 thenable 解析掉，拿到真实的对象表示 */
+            return Promise.resolve(cand.obj)
+                .catch(function () { return cand.obj; })
+                .then(function (resolved) {
+                    var targets = [];
+
+                    if (resolved && resolved !== cand.obj) targets.push(resolved);
+                    targets.push(cand.obj);
+
+                    for (var i = 0; i < targets.length; i++) {
+                        var target = targets[i];
+                        var fn = target ? target[HOST_METHOD] : null;
+
+                        report.push(cand.name + '[' + (i === 0 ? 'awaited' : 'direct') +
+                                    '] -> ' + describe(fn));
+
+                        if (typeof fn === 'function') {
+                            var binding = {
+                                kind: cand.name + (i === 0 ? '(awaited)' : '(direct)'),
+                                raw: target,
+                                call: function (cmd, json) {
+                                    return Promise.resolve(fn.call(target, cmd, json));
+                                }
+                            };
+
+                            hostBinding = binding;
+                            return binding;
+                        }
+                    }
+
+                    return null;
+                });
+        }
+
+        function next() {
+            if (index >= candidates.length) {
+                return Promise.reject(new Error(
+                    '宿主对象之上找不到可调用的 ' + HOST_METHOD + ' 方法。探测结果: ' +
+                    report.join(' ; ')));
+            }
+
+            return attempt(candidates[index++]).then(function (binding) {
+                return binding || next();
+            });
+        }
+
+        return next();
     }
 
     var GenUI = {
@@ -36,30 +137,42 @@
         state: state,
         params: state.params || [],
         host: null,
+        hostKind: '',
 
         /* 调用宿主命令；payload 为普通对象，返回值是宿主回传的 data 字段 */
         call: function (cmd, payload) {
             var json = '{}';
-            var pending;
 
             try { json = JSON.stringify(payload === undefined ? {} : (payload || {})); }
             catch (e) { json = '{}'; }
 
-            /* 宿主对象不可用时统一返回 rejected promise，避免同步异常打断页面脚本。
-               注意方法名是 callHost 而不是 invoke：invoke 是 COM IDispatch 自身的
-               方法名，.NET 不会把它发布到宿主对象的分发表之上。 */
-            try {
-                pending = Promise.resolve(hostObject().callHost(cmd, json));
-            } catch (e) {
-                return Promise.reject(e);
+            if (hostBinding) {
+                var cached = hostBinding;
+                var direct;
+
+                try { direct = cached.call(cmd, json); }
+                catch (e) { return Promise.reject(e); }
+
+                return direct.then(function (text) { return parseHostResult(text); },
+                    function () {
+                        /* 缓存的绑定失效（例如页面被重新导航），重新探测一次 */
+                        hostBinding = null;
+                        return GenUI.call(cmd, payload);
+                    });
             }
 
-            return pending.then(function (text) {
-                var r;
-                try { r = JSON.parse(text); }
-                catch (e) { throw new Error('宿主返回的不是合法的 JSON: ' + String(text).slice(0, 200)); }
-                if (!r || !r.ok) { throw new Error((r && r.error) || '宿主命令执行失败'); }
-                return r.data;
+            /* 方法名是 callHost 而不是 invoke：invoke 是 COM IDispatch 自身的方法名，
+               .NET 不会把它发布到宿主对象的分发表之上。 */
+            return bindHost().then(function (binding) {
+                GenUI.host = binding.raw;
+                GenUI.hostKind = binding.kind;
+
+                var pending;
+
+                try { pending = binding.call(cmd, json); }
+                catch (e) { return Promise.reject(e); }
+
+                return pending.then(function (text) { return parseHostResult(text); });
             });
         },
 
@@ -195,7 +308,18 @@
 
         /* 连通性自检：确认宿主对象已经成功注入并且方法分发正常 */
         ping: function () {
-            return Promise.resolve(hostObject().ping());
+            return bindHost().then(function (binding) {
+                GenUI.host = binding.raw;
+                GenUI.hostKind = binding.kind;
+
+                var fn = binding.raw ? binding.raw.ping : null;
+
+                if (typeof fn !== 'function') {
+                    return binding.kind + ' (ping 不可用)';
+                }
+
+                return Promise.resolve(fn.call(binding.raw));
+            });
         },
 
         /* 打开一个文件对话框选择 R 脚本，并触发后续的分析与界面生成流程 */
@@ -213,10 +337,8 @@
         qsa: qsa
     };
 
-    GenUI.host = hostObject;
+    GenUI.bindHost = bindHost;
     window.GenUI = GenUI;
-
-    console.log(GenUI);
 
     /* 宿主可以直接调用这个全局函数把运行状态推送到页面上 */
     window.genui_status = function (msg, level) { return GenUI.status(msg, level); };
