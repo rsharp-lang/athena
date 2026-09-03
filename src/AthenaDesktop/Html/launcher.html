@@ -195,6 +195,7 @@
     </div>
 
     <div class="footer">GenerativeUI Framework · 由 LLM 动态生成界面 · 全程离线渲染</div>
+    <div class="footer" id="footer-log" style="font-size:11px"></div>
   </div>
 
 <script>
@@ -232,6 +233,7 @@
       if (!ctx) return;
       document.getElementById('chip-model').textContent = ctx.model || '—';
       document.getElementById('chip-r').textContent = ctx.rscript ? 'Rscript' : '不可用';
+      if (ctx.log_file) document.getElementById('footer-log').textContent = '诊断日志: ' + ctx.log_file;
       if (ctx.script) GenUI.status('当前脚本: ' + ctx.script, 'info');
     })
     .catch(fail)
